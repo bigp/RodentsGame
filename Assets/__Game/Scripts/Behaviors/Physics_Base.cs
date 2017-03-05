@@ -4,8 +4,11 @@ using UnityEngine;
 
 public class Physics_Base : CoreScript {
 
-	//// Update is called once per frame
-	//public virtual void Update () {
-		
-	//}
+	[HideInInspector] public CheckGround checkGround;
+
+	public override void Start() {
+		base.Start();
+
+		checkGround = this.GetComponent<CheckGround>();
+	}
 }

@@ -13,6 +13,8 @@ public class ApplyFriction : Physics_Base {
 	
 	// Update is called once per frame
 	void Update () {
+		//if(!checkGround.isOnGround) return;
+
 		Vector2 speedHorizontal = new Vector2(rb.velocity.x, rb.velocity.z);
 		float friction = frictionUnder;
 		float max = isShifted ? speedMaxHigh : speedMaxLow;

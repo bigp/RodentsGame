@@ -8,7 +8,6 @@ public class Singleton<T> : CoreScript where T : MonoBehaviour {
 	// Use this for initialization
 	void Awake () {
 		Instance = this as T;
-		trace("Instance: " + Instance);
 	}
 	
 	// Update is called once per frame

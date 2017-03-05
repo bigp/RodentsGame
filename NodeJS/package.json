@@ -1,0 +1,17 @@
+{
+  "name": "besthttp-test",
+  "version": "1.0.0",
+  "description": "a unity3d test of the besthttp plugin.",
+  "main": "app.js",
+  "author": "Pierre Chamberlain",
+  "license": "MIT",
+  "dependencies": {
+    "colors": "^1.1.2",
+    "dateformat": "^2.0.0",
+    "fs-extra": "^2.0.0",
+    "lodash": "^4.17.4",
+    "mkdirp": "^0.5.1",
+    "socket.io": "^1.7.3",
+    "yargs": "^6.6.0"
+  }
+}

@@ -8,6 +8,7 @@ public class PlayerManager : Singleton<PlayerManager> {
 
 	public float speedShifted = 1.0f;
 	public float speedForward;
+	public float speedAirRatio = 0.8f;
 	public float ratioBack;
 	public float ratioSides;
 	public float jumpMin = 3;
@@ -36,11 +37,12 @@ public class PlayerManager : Singleton<PlayerManager> {
 		bool isLeft = InputUtils.HoldAny("left", KeyCode.A);
 		bool isRight = InputUtils.HoldAny("right", KeyCode.D);
 		bool isBackward = InputUtils.HoldAny("down", KeyCode.S);
-		bool isJump = InputUtils.HoldOrPressed(KeyCode.Space);
+		bool isJump = InputUtils.PressedAny(KeyCode.Space);
 		bool isShift = InputUtils.IsShift();
 		bool isMoving = false;
-
-		float speedAdapted = (isShift ? speedShifted : 1) * this.speedForward * Time.deltaTime;
+		bool isGround = checkGround.isOnGround;
+		
+		float speedAdapted = (isGround ? (isShift ? speedShifted : 1) : speedAirRatio) * this.speedForward * Time.deltaTime;
 		float speedStrafe = speedAdapted * ratioSides;
 		float speedBack = speedAdapted * ratioBack;
 		float magnitude = rb.velocity.magnitude;

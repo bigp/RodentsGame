@@ -20,25 +20,17 @@ public class OutOfBoundsReset : MonoBehaviour {
 	}
 	
 	private void OnTriggerEnter(Collider other) {
-		Debug.Log(other);
+		var otherBody = other.GetComponent<Rigidbody>();
 
-		var opposed = new Vector3(1, -1000000, 1) * Time.deltaTime;
-
-		var ctrl = other.GetComponent<CharacterController>();
-		if(ctrl!=null) {
-			//ctrl.velocity = opposed;
-			ctrl.SimpleMove(opposed);
-		} else {
-			var body = other.GetComponent<Rigidbody>();
-			//opposed.Scale(body.GetPointVelocity(Vector3.zero));
-			//body.isKinematic = false;
-			body.AddForce(opposed);
-			Debug.Log(opposed);
-		}
-
+		//opposed.Scale(body.GetPointVelocity(Vector3.zero));
+		//body.isKinematic = false;
+		other.transform.localPosition = other.transform.localPosition + new Vector3(0, 0.5f, 0);
+		otherBody.velocity = Vector3.zero;
+		otherBody.AddForce(Vector3.up * 10, ForceMode.Impulse);
+		
 		//body.AddRelativeForce(opposed, ForceMode.Impulse);
-		//StartCoroutine(__ChangePosition(other));
-		ChangePosition(other);
+		StartCoroutine(__ChangePosition(other));
+		//ChangePosition(other);
 	}
 
 	private IEnumerator __ChangePosition(Collider other) {
