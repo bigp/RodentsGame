@@ -3,20 +3,11 @@
  */
 
 
-require('./globals');
+require('./common/globals');
 
-const server = require('http').createServer();
-const io = require('socket.io')(server);
-const port = 9999;
+const port = process.env.PORT || 9999;
 
-io.on('connection', function(client){
-  client.on('event', function(data){
-	  trace("Got data! id: " +client.id + " : " + data);
-  });
-  client.on('disconnect', function(){
-	  trace("disconnected " + client.id);
-  });
+BIGP.server.listen(port, function() {
+  BIGP.emit('ready');
+  trace(("Listening on port: " + port).yellowBG.black);
 });
-
-trace("Listening on port: " + port)
-server.listen(port);

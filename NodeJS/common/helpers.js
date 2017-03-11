@@ -185,7 +185,17 @@ module.exports = function(SCOPE) {
 				}
 			}
 
-			require(mod)(NS);
+			var modReturn = require(mod);
+
+			if(_.isFunction(modReturn)) {
+				if(modReturn.length>0) {
+					modReturn(NS);
+				} else {
+					modReturn();
+				}
+			} else {
+				trace("Module loaded, but not a function".red + " : " + mod.toPath().filename);
+			}
 		} );
 	};
 
