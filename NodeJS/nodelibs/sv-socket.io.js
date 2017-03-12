@@ -3,8 +3,6 @@
  */
 module.exports = function(BIGP) {
 
-	var webClients = (BIGP.webClients = BIGP.webClients || []);
-
 	BIGP.io.on('connection', function(client){
 		trace((" >> " + client.id).yellow);
 
@@ -13,20 +11,14 @@ module.exports = function(BIGP) {
 		});
 
 		client.on('echo', function(data){
-			client.emit("echo", "Server echo: " + data);
-		});
-
-		client.on('web-client', function(data) {
-			webClients.push(client);
-		});
-
-		client.on('update', function(data) {
-
+			client.emit("echo", data);
 		});
 
 		client.on('disconnect', function(){
 			trace(("   << " + client.id).red);
 		});
+
+		require('./game/sv-game-sockets')(BIGP, client);
 	});
 
 	BIGP.beep = function() {

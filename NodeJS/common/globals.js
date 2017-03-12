@@ -10,6 +10,7 @@ require('colors');
 require('dotenv').config({path: '.private/config.env'});
 
 BIGP.IS_DEV = _.isTruthy(process.env.IS_DEV);
+BIGP.IS_WEBPACK = _.isTruthy(process.env.IS_WEBPACK);
 
 const _traceError = global.traceError;
 global.traceError = function(msg) {

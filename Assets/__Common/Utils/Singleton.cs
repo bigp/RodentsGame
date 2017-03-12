@@ -9,9 +9,4 @@ public class Singleton<T> : CoreScript where T : MonoBehaviour {
 	void Awake () {
 		Instance = this as T;
 	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
 }

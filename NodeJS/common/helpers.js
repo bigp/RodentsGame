@@ -170,7 +170,7 @@ module.exports = function(SCOPE) {
 	SCOPE.loadModules = function(dir, NS, reload, expr) {
 		if(!expr) expr = /\.*\.js/;
 
-		var svScripts = NS.filesFilter(dir, (file, full) => expr.test(file));
+		var svScripts = NS.filesFilter(dir, (file, full) => expr.test(file), false);
 
 		if(!svScripts || !svScripts.length) {
 			return traceError("Could not find modules in: " + dir);

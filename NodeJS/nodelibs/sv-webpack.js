@@ -5,6 +5,9 @@ const webpack = require('webpack');
 const config = require('../webpack.config.js');
 
 module.exports = function(BIGP) {
+	if(!BIGP.IS_WEBPACK) {
+		return traceError("Not running webpack. Enable in ENV file by setting: " + ('IS_WEBPACK'.green));
+	}
 	config.context = BIGP.__dir;
 	trace(config.context);
 
@@ -15,13 +18,12 @@ module.exports = function(BIGP) {
 		compiler.run((err) => {
 			if(err) return traceError(err);
 
-			BIGP.emit('webpack');
-			BIGP.io.emit('webpack');
-
 			traceClear();
 
 			setTimeout(() => {
 				trace("Webpack Completed!".green);
+				BIGP.emit('webpack');
+				BIGP.io.emit('webpack');
 			}, 250);
 
 		});

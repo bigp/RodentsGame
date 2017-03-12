@@ -2,7 +2,9 @@
     <div class="margin">
         <h3 class="test">{{title}}</h3>
 
-        <p>This is a test!</p>
+        <div v-io.world-bounds="onWorldBounds">
+
+        </div>
 
         <custom1 class="cyan">testing</custom1>
     </div>
@@ -22,9 +24,17 @@ export default {
     },
 
     methods: {
+        onWorldBounds(data) {
+            trace("RECEIVED WORLD BOUNDS!!!");
+            trace(data);
+        }
+    },
 
+    created() {
+        BIGP.io.emit('web-client');
     }
 }
+    //BIGP.io.on('world-bounds', JSON)
 </script>
 
 <style lang="sass">
