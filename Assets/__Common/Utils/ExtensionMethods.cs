@@ -200,16 +200,6 @@ namespace ExtensionMethods {
 			return Mathf.Clamp01(newNormalizedPosition);
 		}
 
-		//////////////////////////////////////////////////////////// For Vector3:
-		
-		public static Vector3 Randomize(this Vector3 vec, float amount=1) {
-			float half = amount * 0.5f;
-			vec.x = half + UnityEngine.Random.value * amount;
-			vec.y = half + UnityEngine.Random.value * amount;
-			vec.z = half + UnityEngine.Random.value * amount;
-			return vec;
-		}
-
 		//////////////////////////////////////////////////////////// For Strings:
 
 		public static string Format(this string str, params object[] args) {

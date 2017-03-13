@@ -7,6 +7,10 @@ public class Singleton<T> : CoreScript where T : MonoBehaviour {
 
 	// Use this for initialization
 	void Awake () {
+		if(Instance!=null) {
+			throw new System.Exception("Already instantiated " + this);
+		}
+
 		Instance = this as T;
 	}
 }

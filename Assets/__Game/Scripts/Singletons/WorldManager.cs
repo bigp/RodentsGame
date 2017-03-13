@@ -12,18 +12,22 @@ public class WorldManager : Singleton<WorldManager> {
 	//private Bounds world
 
 	// Use this for initialization
-	void Start () {
+	public override void Start () {
+		base.Start();
+
+		RenderSettings.fog = true;
+
 		worldBounds = BoundsUtils.GetBoundsOf(worldBuilding);
 		NetManager.WhenConnected += OnConnected;
 	}
 
 	private void OnConnected() {
-		trace("Connected!!!!!!!!!");
+		trace("Connected! Send World Bounds to NodeJS Socket.IO...");
 		NetManager.Socket.Emit("world-bounds", JsonUtility.ToJson(worldBounds));
 	}
 
 	// Update is called once per frame
-	void Update () {
+	//void Update () {
 		
-	}
+	//}
 }

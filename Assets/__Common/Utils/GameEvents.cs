@@ -7,7 +7,10 @@ using Callback = System.Action<GameEvents.Params>;
 using CallbackList = System.Collections.Generic.List<System.Action<GameEvents.Params>>;
 
 public class GameEvents : Singleton<GameEvents> {
+	[Serializable]
 	class Listeners : CustomDictionary<GameEnums, CallbackList> { }
+
+	[Serializable]
 	class Sandboxes : CustomDictionary<string, Listeners> { }
 
 	public class Params {
@@ -16,18 +19,25 @@ public class GameEvents : Singleton<GameEvents> {
 		public object[] args;
 	}
 
-	private static string TAG_ALL = "ALL";
-	private static string TAG_MASTER = "MASTER";
+	private static string TAG_ALL = "all";
+	private static string TAG_MASTER = "master";
 
-	Sandboxes sandboxes = new Sandboxes();
-	Listeners master = new Listeners();
-
+	Sandboxes sandboxes;
+	Listeners master;
+	
 	// Use this for initialization
-	void Start () {
-		sandboxes[TAG_MASTER] = master;
+	public override void Start () {
+		base.Start();
+		
+		sandboxes = new Sandboxes();
+		sandboxes[TAG_MASTER] = master = new Listeners();
 	}
 
 	/////////////////////////////////////////////////////////////////////
+
+	public static void AddListener(GameEnums type, Callback cb) {
+		AddListener(null, type, cb);
+	}
 
 	public static void AddListener(string tag, GameEnums type, Callback cb) {
 		if (tag == null) tag = TAG_MASTER;
@@ -37,6 +47,8 @@ public class GameEvents : Singleton<GameEvents> {
 	}
 
 	public void AddListener(GameEnums type, Callback cb, string tag) {
+		tag = tag.ToLower();
+
 		Listeners listeners = sandboxes[tag];
 		if(listeners==null) {
 			listeners = sandboxes[tag] = new Listeners();
@@ -67,19 +79,30 @@ public class GameEvents : Singleton<GameEvents> {
 	/////////////////////////////////////////////////////////////////////
 	
 	public void Dispatch(Params eventParams) {
+		if(eventParams==null || eventParams.tag==null) {
+			Debug.LogError("eventParams or tag is null, cannot dispatch event/enum!");
+			return;
+		}
+
+		eventParams.tag = eventParams.tag.ToLower();
+
+		Listeners listeners;
 		if (eventParams.tag == TAG_ALL) {
-			foreach (Listeners listeners in sandboxes.Values) {
+			foreach (string tag in sandboxes.Keys) {
+				listeners = sandboxes[tag];
 				_Dispatch(eventParams, listeners);
 			}
 			return;
 		}
 
-		_Dispatch(eventParams, sandboxes[eventParams.tag]);
+		listeners = sandboxes[eventParams.tag];
+		_Dispatch(eventParams, listeners);
 	}
 
 	void _Dispatch(Params eventParams, Listeners listeners) {
 		if (listeners==null || !listeners.HasKey(eventParams.type)) return;
 
+		
 		CallbackList callbacks = listeners[eventParams.type];
 		foreach (Callback cb in callbacks) {
 			cb(eventParams);

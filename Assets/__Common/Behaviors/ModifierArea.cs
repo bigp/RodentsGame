@@ -9,20 +9,15 @@ public class ModifierArea : CoreScript {
 	public GameEnums enumExit;
 	public GameEnums enumStay;
 
-	private void OnTriggerStay(Collider other) {
-		//trace(other);
-	}
-
 	private void OnTriggerEnter(Collider other) {
-		//trace(other);
+		GameEvents.Dispatch(enumEnter);
 	}
 
 	private void OnTriggerExit(Collider other) {
-
+		GameEvents.Dispatch(enumExit);
 	}
 
-	// Update is called once per frame
-	void Update () {
-		
+	private void OnTriggerStay(Collider other) {
+		GameEvents.Dispatch(enumStay);
 	}
 }

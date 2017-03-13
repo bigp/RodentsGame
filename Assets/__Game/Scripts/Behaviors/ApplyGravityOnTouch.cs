@@ -12,7 +12,7 @@ public class ApplyGravityOnTouch : Physics_Base {
 	private void OnCollisionEnter(Collision collision) {
 		if(collision.gameObject.tag.ToLower()=="player") {
 			this.rb.useGravity = true;
-			this.rb.velocity = collision.rigidbody.velocity + new Vector3().Randomize(collision.rigidbody.velocity.magnitude*3);
+			this.rb.velocity = collision.rigidbody.velocity + Randomize.VectorByAmount(collision.rigidbody.velocity.magnitude*3);
 		}
 	}
 

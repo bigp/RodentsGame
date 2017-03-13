@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,7 +12,13 @@ public class CoreScript : MonoBehaviour {
 	public virtual void Start() {
 		rb = this.GetComponent<Rigidbody>();
 		col = this.GetComponent<Collider>();
+
+		Init();
+		AddEvents();
 	}
+
+	public virtual void Init() {}
+	public virtual void AddEvents() {}
 
 	public static void trace(object any) {
 		Debug.Log(any);
