@@ -3,14 +3,41 @@
  */
 const dgram = require('dgram');
 //const udpServer = dgram.createSocket('udp4');
-const client = dgram.createSocket('udp4');
+
 const STATUSES = { NULL: 0, MESSAGE: 1, LOGIN: 2, LOGOUT: 3 };
 const PORT = 11000;
 
 module.exports = function(BIGP) {
+	var UDP = BIGP.udp = new UDPClient(PORT);
+	UDP.repeatSend(() => {
+		return createMessage("Pierre", "Hello! Counting... " + new Date().getTime());
+	});
 
-	function send(data, cb) {
-		client.send(data, PORT, 'localhost', (err) => {
+	setTimeout(() => {
+		UDP.repeatStop();
+		UDP.close();
+	}, 2000);
+};
+
+//////////////////////////////////////////////////////////
+
+class UDPClient {
+	constructor(port) {
+		this.port = port;
+		this._isRepeating = false;
+		this._repeatID = -1;
+		this.client = dgram.createSocket('udp4');
+		this.client.on('error', function(err) {
+			trace(err);
+		});
+
+		this.client.on('connect', function() {
+			trace("CONNNNNNNNNNECTED!");
+		});
+	}
+
+	send(buffer, cb) {
+		this.client.send(buffer, this.port, 'localhost', (err) => {
 			if(err) return traceError(err);
 
 			trace("Message sent!");
@@ -19,71 +46,40 @@ module.exports = function(BIGP) {
 		});
 	}
 
-	function close() {
-		client.close();
+	close() {
+		this.client.close();
 		trace("Closing connection....");
 	}
 
-	trace("UDP CLIENT TEST!");
-
-	client.on('error', function(err) {
-		trace(err);
-	});
-
-	client.on('connect', function() {
-		trace("CONNNNNNNNNNECTED!");
-	});
-
-	var tracker = -1;
-	var errors = [];
-	client.on('message', function(message, remote) {
-		var addr = remote.address;
-
-		var whole = [];
-		var len = 0;
-		whole.push( message.readInt32LE(len) );
-		var nameLen = message.readInt32LE(len+=4);
-		var msgLen = message.readInt32LE(len+=4);
-		whole.push( message.toString('utf8', len+=4, len += nameLen) );
-		var msg = message.toString('utf8', len, len += msgLen);
-		whole.push( msg );
-
-		tracker++;
-
-		var num = parseInt(msg.match(/\d+/)[0]);
-		if(tracker!=num) {
-			errors.push("Missmatch packet: " + tracker);
+	repeatSend(cbBuffer, timeMS) {
+		if(!cbBuffer) {
+			return traceError("repeatSend() - You must pass a callback function that returns a buffer!");
 		}
 
-		trace(remote);
-		trace(addr + " : " + whole.join(' ') + " #" + num);
+		if(!timeMS || timeMS<1) timeMS = 250;
 
-		traceError(errors);
-	});
-
-	var keepSending = true;
-	var counter = 0;
-
-	function sendRepeat() {
-		if(!keepSending) return;
-
-		//traceClear();
-		const buf = createMessage("Pierre", "Hello! Counting... " + counter++);
-
-		send(buf, () => {
-			setTimeout(() => {
-				sendRepeat();
-			}, 1000);
-		});
+		var _this = this;
+		this._isRepeating = true;
+		this._repeatID = setTimeout(() => {
+			var buffer = cbBuffer();
+			_this.send(buffer);
+			_this.repeatSend(cbBuffer, timeMS);
+		}, timeMS);
 	}
 
-	sendRepeat();
+	repeatStop() {
+		if(this._repeatID==-1) return;
 
-	//setTimeout(() => {
-	//	keepSending = false;
-	//	close();
-	//}, 3000);
-};
+		clearTimeout(this._repeatID);
+		this._repeatID = -1;
+		this._isRepeating = false;
+	}
+
+	isRepeating() {
+		return this._isRepeating;
+	}
+}
+
 
 function createMessage(name, msg) {
 	return createBuffer(STATUSES.MESSAGE, Buffer.byteLength(name), Buffer.byteLength(msg), name, msg);
@@ -112,3 +108,46 @@ function createBuffer() {
 
 	return buf;
 }
+
+//client.on('message', function(message, remote) {
+//	var addr = remote.address;
+//
+//	var whole = [];
+//	var len = 0;
+//	whole.push( message.readInt32LE(len) );
+//	var nameLen = message.readInt32LE(len+=4);
+//	var msgLen = message.readInt32LE(len+=4);
+//	whole.push( message.toString('utf8', len+=4, len += nameLen) );
+//	var msg = message.toString('utf8', len, len += msgLen);
+//	whole.push( msg );
+//
+//	tracker++;
+//
+//	var num = parseInt(msg.match(/\d+/)[0]);
+//	if(tracker!=num) {
+//		errors.push("Missmatch packet: " + tracker);
+//	}
+//
+//	trace(remote);
+//	trace(addr + " : " + whole.join(' ') + " #" + num);
+//
+//	traceError(errors);
+//});
+
+//var keepSending = true;
+//var counter = 0;
+//
+//function sendRepeat() {
+//	if(!keepSending) return;
+//
+//	//traceClear();
+//	const buf = createMessage("Pierre", "Hello! Counting... " + counter++);
+//
+//	send(buf, () => {
+//		setTimeout(() => {
+//			sendRepeat();
+//		}, 1000);
+//	});
+//}
+
+//sendRepeat();
