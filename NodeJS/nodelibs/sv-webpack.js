@@ -8,6 +8,8 @@ module.exports = function(BIGP) {
 	if(!BIGP.IS_WEBPACK) {
 		return traceError("Not running webpack. Enable in ENV file by setting: " + ('IS_WEBPACK'.green));
 	}
+	return;
+
 	config.context = BIGP.__dir;
 	trace(config.context);
 

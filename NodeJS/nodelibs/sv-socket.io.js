@@ -18,6 +18,7 @@ module.exports = function(BIGP) {
 			trace(("   << " + client.id).red);
 		});
 
+		//Extend the socket with game-specific features:
 		require('./game/sv-game-sockets')(BIGP, client);
 	});
 
