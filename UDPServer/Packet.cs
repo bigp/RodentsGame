@@ -3,46 +3,95 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace MyUDP {
-	// Packet Structure
-	// =======================================================================================
-	// Description   -> |dataIdentifier|name length|message length|    name   |    message   |
-	// Size in bytes -> |       4      |     4     |       4      |name length|message length|
-	public enum EnumPacketPart { Null, Message, LogIn, LogOut }
+	using Packet;
 
-	public class MyUDPPacket {
-		private EnumPacketPart _identifier;
-		private string _name;
-		private string _message;
+	// ===================================
+	//       -- PACKET STRUCTURE --
+	// 
+	// Description        Size (bytes)
+	// ===================================
+	// CLIENT_TIME      | uint(4)
+	// NUM_OF_COMMANDS  | int(4)
+	//
+	// [commands]       | ...
+	//  - ACK ID        | int(4)       <== Acknoledge ID, increments during the cycle of a client connection.
+	//  - FRAME ID      | int(4)       <== Delta of time from the CLIENT_TIME for each commands.
+	//  - TYPES         | byte(1)      <== Combination of type flags
+	//  - XYZ-DATA...   | type-lengths <== Could be combination of uint, byte, long, etc.
+	//  - JSON-length   | int(4)       <== if TYPE includes
+	//  - JSON-DATA...  | JSON-length
+	// ===================================
+	namespace Packet {
+		[Flags]
+		public enum EPacketTypes {
+			JSON = 64,
+		}
 
+		public struct Command {
+			public int ackID;
+			public int timeOffset;
+			public EPacketTypes types;
+			public byte[] typeData;
+			public string jsonData;
+		}
+	}
+
+	public class MyPacket {
 		private int _byteIndex = 0;
 		private byte[] _byteStream;
 		private List<byte> _bytesList;
 
 		public static Encoding UTF8 { get { return Encoding.UTF8; } }
-		public string Name { get { return _name; } set { _name = value; } }
-		public string Message { get { return _message; } set { _message = value; } }
-		public EnumPacketPart Identifier { get { return _identifier; } set { _identifier = value; } }
+		
+		public ulong clientTime = 0;
+		public int numOfCommands = 0;
+		public List<Command> commands;
 
 		/////////////////////////////////////////////////////////
 
-		public MyUDPPacket() {
-			this._identifier = EnumPacketPart.Null;
-			this._message = null;
-			this._name = null;
-
+		public MyPacket() {
 			_bytesList = new List<byte>();
+			commands = new List<Command>();
 		}
 
 		public void DecodePacket(byte[] byteStream) {
 			ResetByteIndex(byteStream);
 
-			this._identifier = (EnumPacketPart)ReadInt(); // Read the data identifier from the beginning of the stream (4 bytes)
+			clientTime = ReadULong();
+			numOfCommands = ReadInt();
 
-			int nameLength = ReadInt(); // Read the length of the NAME (4 bytes)
-			int msgLength = ReadInt(); // Read the length of the MESSAGE (4 bytes)
+			commands.Clear();
 
-			this._name = ReadString(nameLength); // Read the NAME field
-			this._message = ReadString(msgLength); // Read the MESSAGE field
+			for(int c=0; c<numOfCommands; c++) {
+				Command cmd = new Command();
+
+				cmd.ackID = ReadInt();
+				cmd.timeOffset = ReadInt();
+				cmd.types = (EPacketTypes)ReadByte();
+				cmd.jsonData = ReadString();
+
+				Log.trace("{0}, {1}, {2}, {3}", cmd.ackID, cmd.timeOffset, (int)cmd.types, cmd.jsonData);
+
+				//Log.trace("JSONData -> " + cmd.jsonData);
+
+				commands.Add(cmd);
+			}
+		}
+
+		public byte[] EncodePacket() {
+			_bytesList.Clear();
+
+			WriteULongs(clientTime);
+			WriteInts(numOfCommands);
+
+			foreach(Command cmd in commands) {
+				WriteInts(cmd.ackID);
+				WriteInts(cmd.timeOffset);
+				WriteBytes((byte) cmd.types);
+				WriteStrings(cmd.jsonData);
+			}
+
+			return _bytesList.ToArray();
 		}
 
 		///////////////////////////////////////////////////////// UTILITY METHODS (Read / Write bytes, tracks index)
@@ -52,53 +101,98 @@ namespace MyUDP {
 			_byteStream = dataStream;
 		}
 
+		private byte ReadByte() {
+			byte value = _byteStream[_byteIndex];
+			_byteIndex += 1;
+			return value;
+		}
+
+		private short ReadShort() {
+			short value = BitConverter.ToInt16(_byteStream, _byteIndex);
+			_byteIndex += 2;
+			return value;
+		}
+
 		private int ReadInt() {
 			int value = BitConverter.ToInt32(_byteStream, _byteIndex);
 			_byteIndex += 4;
 			return value;
 		}
 
-		//private string[] ReadStrings(int numStrings) {
+		private uint ReadUInt() {
+			uint value = BitConverter.ToUInt32(_byteStream, _byteIndex);
+			_byteIndex += 4;
+			return value;
+		}
 
-		//}
+		private ulong ReadULong() {
+			ulong value = BitConverter.ToUInt64(_byteStream, _byteIndex);
+			_byteIndex += 8;
+			return value;
+		}
 
-		private string ReadString(int numChars) {
-			if (numChars <= 0) return null;
+		private double ReadDouble() {
+			double value = BitConverter.ToDouble(_byteStream, _byteIndex);
+			_byteIndex += 8;
+			return value;
+		}
+
+		private string ReadString(int numChars=-1) {
+			if(numChars==0) return null;
+			if (numChars < 0) numChars = ReadInt();
 			string value = UTF8.GetString(_byteStream, _byteIndex, numChars);
 			_byteIndex += numChars;
 			return value;
 		}
 
-		private void WriteInt(params int[] values) {
+		/////////////////////////////////////////////////////////
+
+		private void WriteDoubles(params double[] values) {
+			foreach (double value in values) {
+				_bytesList.AddRange(BitConverter.GetBytes(value));
+			}
+		}
+
+		private void WriteBytes(params byte[] bytes) {
+			_bytesList.AddRange(bytes);
+		}
+
+		private void WriteInts(params int[] values) {
 			foreach (int value in values) {
 				_bytesList.AddRange(BitConverter.GetBytes(value));
 			}
 		}
 
-		private void WriteStringLengths(params string[] values) {
-			foreach (string value in values) {
-				WriteInt(value == null ? 0 : value.Length);
+		private void WriteUInts(params uint[] values) {
+			foreach (uint value in values) {
+				_bytesList.AddRange(BitConverter.GetBytes(value));
+			}
+		}
+
+		private void WriteLong(params long[] values) {
+			foreach (long value in values) {
+				_bytesList.AddRange(BitConverter.GetBytes(value));
+			}
+		}
+
+		private void WriteULongs(params ulong[] values) {
+			foreach (ulong value in values) {
+				_bytesList.AddRange(BitConverter.GetBytes(value));
+			}
+		}
+
+		private void WriteShorts(params short[] values) {
+			foreach (short value in values) {
+				_bytesList.AddRange(BitConverter.GetBytes(value));
 			}
 		}
 
 		private void WriteStrings(params string[] values) {
 			foreach (string value in values) {
+				WriteInts(string.IsNullOrEmpty(value) ? 0 : value.Length);
 				if (value == null) continue;
 				_bytesList.AddRange(UTF8.GetBytes(value));
 			}
-		}
-
-		/////////////////////////////////////////////////////////
-
-		// Converts the packet into a byte array for sending/receiving 
-		public byte[] GetDataStream() {
-			_bytesList.Clear();
-
-			WriteInt((int)this._identifier);             // Add the dataIdentifier
-			WriteStringLengths(this._name, this._message);    // Add the length of name, message.
-			WriteStrings(this._name, this._message);          // Add the name, message
-
-			return _bytesList.ToArray();
 		}
 	}
 }

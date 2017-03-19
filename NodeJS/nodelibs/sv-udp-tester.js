@@ -1,153 +1,92 @@
 /**
  * Created by Chamberlain on 18/03/2017.
  */
-const dgram = require('dgram');
-//const udpServer = dgram.createSocket('udp4');
 
-const STATUSES = { NULL: 0, MESSAGE: 1, LOGIN: 2, LOGOUT: 3 };
-const PORT = 11000;
+// ===================================
+//       -- PACKET STRUCTURE --
+//
+// Description        Size (bytes)
+// ===================================
+// CLIENT_TIME      | uint(4)
+// NUM_OF_COMMANDS  | int(4)
+//
+// [commands]       | ...
+//  - ACK ID        | int(4)       <== Acknoledge ID, increments during the cycle of a client connection.
+//  - TIME OFFSET	| int(4)       <== Delta of time from the CLIENT_TIME for each commands.
+//  - TYPES         | byte(1)      <== Combination of type flags
+//  - XYZ-DATA...   | type-lengths <== Could be combination of uint, byte, long, etc.
+//  - JSON-length   | int(4)       <== if TYPE includes
+//  - JSON-DATA...  | JSON-length
+// ===================================
+
+const UDPClient = require('./net/udp-client');
+const EPacketTypes = { ACK: 1, POSITION: 2, ROTATION: 4, ACTION: 8, JSON: 64 };
+const EPacketSizes = {};
+EPacketSizes[EPacketTypes.ACK] = 4;          //32-bit * 1: Int32 to 'trim' current acknowledged commands.
+EPacketSizes[EPacketTypes.POSITION] = 4 * 3; //32-bit * 3: Vector3(X, Y, Z)
+EPacketSizes[EPacketTypes.ROTATION] = 4 * 4; //32-bit * 4: Quaternion(X, Y, Z, W)
+EPacketSizes[EPacketTypes.ACTION] = 1;		 //1 byte (256 possible choices)
+EPacketSizes[EPacketTypes.JSON] = -1;
+
+global.redHex = function (value) {
+	return value.toString(16).red;
+};
 
 module.exports = function(BIGP) {
-	var UDP = BIGP.udp = new UDPClient(PORT);
-	UDP.repeatSend(() => {
-		return createMessage("Pierre", "Hello! Counting... " + new Date().getTime());
+	var sampleJSON = JSON.stringify({x: 32}); // , y: 2, z: 3, isVisible: true
+
+	var commandsTest = [
+		{ack: 0, frame: 1, types: EPacketTypes.JSON, jsonData: sampleJSON},
+		{ack: 1, frame: 2, types: EPacketTypes.JSON, jsonData: sampleJSON}
+	];
+
+	var UDP = BIGP.udp = new UDPClient({
+		onReceive(err, udpBuffer, remote, client) {
+			if(err) return traceError(err);
+
+			var clientTime = udpBuffer.readULong();
+			var numCommands = udpBuffer.readInt();
+			var clientLocalTime = new Date(clientTime).toLocaleTimeString();
+
+			var cmdArr = [];
+
+			for(var c=0; c<numCommands; c++) {
+				var ack = udpBuffer.readInt();
+				var frameID = udpBuffer.readInt();
+				var types = udpBuffer.readByte();
+
+				//TYPES..........
+
+				var jsonData = udpBuffer.readString();
+
+				cmdArr.push(`\n - ACK ${ack} frame ${frameID} types ${types}, "${jsonData}"` );
+			}
+
+			var cmdStr = cmdArr.join('');
+
+
+			trace(`${clientLocalTime} (${numCommands})${cmdStr}\n`.cyan);
+		}
 	});
 
+	UDP.repeatSend(500, (updBuffer) => {
+		var now = new Date().getTime();
+		var data = [ {type:'date', value: now}, commandsTest.length ];
+
+		commandsTest.forEach(cmd => {
+			//For each commands, add the ACK, FRAME_ID, TYPES and JSON-DATA...
+			data.push( cmd.ack, cmd.frame, [cmd.types], /* TYPES...*/ cmd.jsonData );
+		});
+
+		return updBuffer.createBuffer(data);
+	});
+
+	//Close the connection after some time.
 	setTimeout(() => {
 		UDP.repeatStop();
 		UDP.close();
-	}, 2000);
+	}, 4000);
 };
 
-//////////////////////////////////////////////////////////
-
-class UDPClient {
-	constructor(port) {
-		this.port = port;
-		this._isRepeating = false;
-		this._repeatID = -1;
-		this.client = dgram.createSocket('udp4');
-		this.client.on('error', function(err) {
-			trace(err);
-		});
-
-		this.client.on('connect', function() {
-			trace("CONNNNNNNNNNECTED!");
-		});
-	}
-
-	send(buffer, cb) {
-		this.client.send(buffer, this.port, 'localhost', (err) => {
-			if(err) return traceError(err);
-
-			trace("Message sent!");
-
-			cb && cb();
-		});
-	}
-
-	close() {
-		this.client.close();
-		trace("Closing connection....");
-	}
-
-	repeatSend(cbBuffer, timeMS) {
-		if(!cbBuffer) {
-			return traceError("repeatSend() - You must pass a callback function that returns a buffer!");
-		}
-
-		if(!timeMS || timeMS<1) timeMS = 250;
-
-		var _this = this;
-		this._isRepeating = true;
-		this._repeatID = setTimeout(() => {
-			var buffer = cbBuffer();
-			_this.send(buffer);
-			_this.repeatSend(cbBuffer, timeMS);
-		}, timeMS);
-	}
-
-	repeatStop() {
-		if(this._repeatID==-1) return;
-
-		clearTimeout(this._repeatID);
-		this._repeatID = -1;
-		this._isRepeating = false;
-	}
-
-	isRepeating() {
-		return this._isRepeating;
-	}
-}
 
 
-function createMessage(name, msg) {
-	return createBuffer(STATUSES.MESSAGE, Buffer.byteLength(name), Buffer.byteLength(msg), name, msg);
-}
-
-function createBuffer() {
-	var len = 0;
-	var operations = [];
-	for(var a=0; a<arguments.length; a++) {
-		var value = arguments[a];
-		switch(typeof(value)) {
-			case 'number': operations.push({method: 'writeInt32LE', args: [value, len]});
-				len += 4;
-				break;
-			case 'string': operations.push({method: 'write', args: [value, len, -1, 'utf8']});
-				len += Buffer.byteLength(value);
-				break;
-		}
-	}
-
-	var buf = new Buffer(len);
-
-	operations.forEach(op => {
-		buf[op.method].apply(buf, op.args);
-	});
-
-	return buf;
-}
-
-//client.on('message', function(message, remote) {
-//	var addr = remote.address;
-//
-//	var whole = [];
-//	var len = 0;
-//	whole.push( message.readInt32LE(len) );
-//	var nameLen = message.readInt32LE(len+=4);
-//	var msgLen = message.readInt32LE(len+=4);
-//	whole.push( message.toString('utf8', len+=4, len += nameLen) );
-//	var msg = message.toString('utf8', len, len += msgLen);
-//	whole.push( msg );
-//
-//	tracker++;
-//
-//	var num = parseInt(msg.match(/\d+/)[0]);
-//	if(tracker!=num) {
-//		errors.push("Missmatch packet: " + tracker);
-//	}
-//
-//	trace(remote);
-//	trace(addr + " : " + whole.join(' ') + " #" + num);
-//
-//	traceError(errors);
-//});
-
-//var keepSending = true;
-//var counter = 0;
-//
-//function sendRepeat() {
-//	if(!keepSending) return;
-//
-//	//traceClear();
-//	const buf = createMessage("Pierre", "Hello! Counting... " + counter++);
-//
-//	send(buf, () => {
-//		setTimeout(() => {
-//			sendRepeat();
-//		}, 1000);
-//	});
-//}
-
-//sendRepeat();
