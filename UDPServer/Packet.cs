@@ -54,7 +54,7 @@ namespace MyUDP {
 			commands = new List<Command>();
 		}
 
-		public void DecodePacket(byte[] byteStream) {
+		public void DecodeFrom(byte[] byteStream) {
 			ResetByteIndex(byteStream);
 
 			clientTime = ReadULong();
@@ -78,7 +78,7 @@ namespace MyUDP {
 			}
 		}
 
-		public byte[] EncodePacket() {
+		public byte[] EncodeTo(byte[] destination=null) {
 			_bytesList.Clear();
 
 			WriteULongs(clientTime);
@@ -89,6 +89,11 @@ namespace MyUDP {
 				WriteInts(cmd.timeOffset);
 				WriteBytes((byte) cmd.types);
 				WriteStrings(cmd.jsonData);
+			}
+
+			if(destination!=null) {
+				_bytesList.CopyTo(destination);
+				return destination;
 			}
 
 			return _bytesList.ToArray();

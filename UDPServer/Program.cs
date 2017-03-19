@@ -11,6 +11,7 @@ namespace MyUDP {
 			Console.CancelKeyPress += (sender, eArgs) => {
 				_quitEvent.Set();
 				eArgs.Cancel = true;
+				server.Close();
 			};
 
 			server = new MyUDPServer();

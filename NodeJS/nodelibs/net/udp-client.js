@@ -9,16 +9,18 @@ const PORT = 11000;
 class UDPClient {
 	constructor(options) {
 		if(!options) options = {};
+		if(!options.port) options.port = PORT;
+		if(!options.host) options.host = 'localhost';
+
 		var _this = this;
-		this.port = options.port || PORT;
+		this.options = options;
 		this._isRepeating = false;
 		this._repeatID = -1;
 		this._udpBuffer = new UDPBuffer();
 
 		var client = this.client = dgram.createSocket('udp4');
 		client.on('connect', function(err) {
-			if(!options.onConnect) return;
-			if(err) return options.onConnect(err);
+			if(err) return options.onReceive(err);
 
 			options.onConnect && options.onConnect();
 		});
@@ -41,7 +43,8 @@ class UDPClient {
 	///////////////////////////////////////////////////
 
 	send(buffer, cb) {
-		this.client.send(buffer, this.port, 'localhost', (err) => {
+		var _this = this;
+		this.client.send(buffer, this.options.port, this.options.host, (err) => {
 			if(err) return traceError(err);
 
 			cb && cb();

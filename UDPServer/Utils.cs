@@ -24,7 +24,8 @@ namespace MyUDP {
 	public static class MyDefaults {
 		/////////////////////////////////////////////////////////////////////////////// Constants & Defaults:
 		public static int DATA_STREAM_SIZE = 1024;
-		public static int PORT = 11000;
+		public static int PORT_SERVER = 11000;
+		public static int PORT_CLIENT = 11001;
 
 
 	}
