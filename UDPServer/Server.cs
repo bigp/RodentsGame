@@ -35,7 +35,7 @@ namespace MyUDP {
 			Console.ForegroundColor = ConsoleColor.Green;
 			Console.Write("[MyUDP Server] ");
 			Console.ForegroundColor = before;
-
+			before = ConsoleColor.Black;
 			Log.trace(obj.ToString(), args);
 		}
 
@@ -43,7 +43,7 @@ namespace MyUDP {
 
 		public MyUDPServer(int port=-1, int dataStreamSize=-1, bool autoListens=true) {
 			this._clientList = new ClientList();  // Initialise list of connected clients
-			this._port = port < 0 ? MyDefaults.PORT_SERVER : port;
+			this._port = port < 0 ? MyDefaults.SERVER_PORT : port;
 			if(dataStreamSize<0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
 
 			_dataStream = new byte[dataStreamSize];
@@ -68,8 +68,8 @@ namespace MyUDP {
 		/////////////////////////////////////////////////////////////////////////////// Methods:
 
 		public void Listen(AsyncCallback callback=null) {
-			if(callback==null) callback = new AsyncCallback(OnMainReceivingLoop);
-
+			if(callback==null) callback = this.OnMainReceivingLoop;
+			
 			// Start listening for incoming data
 			_socket.BeginReceiveFrom(
 				_dataStream, 0,
@@ -87,13 +87,9 @@ namespace MyUDP {
 		private void OnMainReceivingLoop(IAsyncResult asyncResult) {
 			try {
 				MyUDPInternalClient client = GetClient(asyncResult);
-				trace("Received: " + client.ToString() + " - " + client.packet.clientTime + " #commands: " + client.packet.numOfCommands);
-
-				MyPacket pk = client.packet;
-				////////////////////////////////////////////
-
-				//SendData(client.packet.EncodeTo(), client);
-				SendAll(client.packet.EncodeTo());
+				trace("Received: " + client.ToString() + " - " + client.packet.clientTimeFormatted + " #commands: " + client.packet.numOfCommands);
+				
+				SendAll(client.packet);
 
 				WaitForNextData(client.endpointIncoming); // Listen for more connections again...
 			} catch (Exception ex) {
@@ -102,29 +98,44 @@ namespace MyUDP {
 		}
 		//////////////////////////////////////////// *********************** /
 
-		public void SendData(byte[] packetData, MyUDPInternalClient client, AsyncCallback callback = null) {
-			if (callback == null) callback = new AsyncCallback(this.OnSendDataComplete);
+		public void SendData(MyPacket packet, MyUDPInternalClient client, AsyncCallback callback = null) {
+			trace("----> Client: " + client.ToString() + " : " + packet.commands[0].jsonData);
+
+			__SendData(packet, client, callback);
+		}
+
+		private void __SendData(MyPacket packet, MyUDPInternalClient client, AsyncCallback callback = null) {
+			if (callback == null) callback = this.OnSendDataComplete;
+
+			byte[] bytesOut;
+			try {
+				bytesOut = packet.EncodeTo();
+			} catch(Exception ex) {
+				Log.traceError("Packet Encode error: " + ex.Message);
+				return;
+			}
+
+			if(bytesOut==null) return;
 
 			_socket.BeginSendTo(
-				packetData, 0, packetData.Length,
+				bytesOut, 0, bytesOut.Length,
 				SocketFlags.None,
 				client.endpointIncoming,
 				callback,
 				client.endpointIncoming
 			);
-
-			trace("Sending to client: " + client.ToString());
 		}
 
-		public void SendAll(byte[] packetData, AsyncCallback callback = null, EndPoint exceptEndpoint = null) {
+		public void SendAll(MyPacket packet, AsyncCallback callback = null, EndPoint exceptEndpoint = null) {
 			trace(this._clientList.Count);
 
+			trace("SendAll...");
 			foreach (MyUDPInternalClient client in this._clientList.Values) {
 				bool isSelf = exceptEndpoint == null ? false : client.endpointIncoming == exceptEndpoint;
 				if (isSelf) continue;
-				trace("client A: " + client.ToString());
 
-				SendData(packetData, client, callback);
+				trace("   --> Client: " + client.ToString() + " : " + packet.commands[0].jsonData);
+				__SendData(packet, client, callback);
 			}
 		}
 
@@ -137,7 +148,7 @@ namespace MyUDP {
 		}
 
 		private void WaitForNextData(EndPoint epClient, AsyncCallback callback = null) {
-			if (callback == null) callback = new AsyncCallback(this.OnMainReceivingLoop); // <------ Recursively / Async receives more data?
+			if (callback == null) callback = this.OnMainReceivingLoop; // <------ Recursively / Async receives more data?
 
 			socket.BeginReceiveFrom(
 				dataStream, 0,
@@ -150,13 +161,15 @@ namespace MyUDP {
 		}
 
 		private MyUDPInternalClient GetClient(IAsyncResult asyncResult) {
-			EndPoint epClient = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.PORT_CLIENT); // Initialise the IPEndPoint for the clients
-			socket.EndReceiveFrom(asyncResult, ref epClient); // Receive all data
+			EndPoint epClient = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT); // Initialise the IPEndPoint for the clients
+			int byteCount = socket.EndReceiveFrom(asyncResult, ref epClient); // Receive all data
+
+			trace("Bytes Received: " + byteCount);
 
 			MyUDPInternalClient client;
 
 			if (!_clientList.ContainsKey(epClient)) {
-				trace("~~~ New Client! " + epClient);
+				trace(" ** New Client! ** " + epClient);
 				client = new MyUDPInternalClient(this);
 				client.endpointIncoming = epClient;
 				_clientList[epClient] = client;
@@ -165,7 +178,6 @@ namespace MyUDP {
 			}
 
 			client.ReadResult(asyncResult);
-			trace("Client Endpoint: " + client.endpointIncoming);
 			
 			return client;
 		}

@@ -14,7 +14,7 @@ class UDPClient {
 
 		var _this = this;
 		this.options = options;
-		this._isRepeating = false;
+		this.isRepeating = false;
 		this._repeatID = -1;
 		this._udpBuffer = new UDPBuffer();
 
@@ -38,8 +38,6 @@ class UDPClient {
 		});
 	}
 
-	isRepeating() { return this._isRepeating; }
-
 	///////////////////////////////////////////////////
 
 	send(buffer, cb) {
@@ -57,14 +55,12 @@ class UDPClient {
 	}
 
 	repeatSend(timeMS, cbBuffer) {
-		if(!cbBuffer) {
-			return traceError("repeatSend() - You must pass a callback function that returns a buffer!");
-		}
+		if(!cbBuffer || cbBuffer.length!=1) return traceError("repeatSend( ? ) - You must pass a callback function of signature: (udpBuffer) => return Buffer");
 
 		if(!timeMS || timeMS<1) timeMS = 250;
 
 		var _this = this;
-		this._isRepeating = true;
+		this.isRepeating = true;
 		this._repeatID = setTimeout(() => {
 			var bytesBuffer = cbBuffer(_this._udpBuffer);
 			_this.send(bytesBuffer);
@@ -77,7 +73,7 @@ class UDPClient {
 
 		clearTimeout(this._repeatID);
 		this._repeatID = -1;
-		this._isRepeating = false;
+		this.isRepeating = false;
 	}
 }
 

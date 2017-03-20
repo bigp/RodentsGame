@@ -15,11 +15,7 @@ namespace MyUDP {
 			};
 
 			server = new MyUDPServer();
-
-			//Utils.setTimeout((object state) => {
-			//	Log.trace("Hello World!");
-			//});
-
+			
 			_quitEvent.WaitOne();
 		}
 	}

@@ -20,12 +20,12 @@
 // ===================================
 
 const UDPClient = require('./net/udp-client');
-const EPacketTypes = { ACK: 1, POSITION: 2, ROTATION: 4, ACTION: 8, JSON: 64 };
+const EPacketTypes = { ACK: 1, ACTION: 2, POSITION: 4, ROTATION: 8, JSON: 64 };
 const EPacketSizes = {};
 EPacketSizes[EPacketTypes.ACK] = 4;          //32-bit * 1: Int32 to 'trim' current acknowledged commands.
+EPacketSizes[EPacketTypes.ACTION] = 1;		 //1 byte (256 possible choices)
 EPacketSizes[EPacketTypes.POSITION] = 4 * 3; //32-bit * 3: Vector3(X, Y, Z)
 EPacketSizes[EPacketTypes.ROTATION] = 4 * 4; //32-bit * 4: Quaternion(X, Y, Z, W)
-EPacketSizes[EPacketTypes.ACTION] = 1;		 //1 byte (256 possible choices)
 EPacketSizes[EPacketTypes.JSON] = -1;
 
 global.redHex = function (value) {
