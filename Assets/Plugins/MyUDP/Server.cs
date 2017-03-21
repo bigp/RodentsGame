@@ -31,11 +31,11 @@ namespace MyUDP {
 		/////////////////////////////////////////////////////////////////////////////// Internal helper methods:
 
 		public static void trace(object obj, params object[] args) {
-			ConsoleColor before = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Green;
+			//ConsoleColor before = Console.ForegroundColor;
+			//Console.ForegroundColor = ConsoleColor.Green;
 			Console.Write("[MyUDP Server] ");
-			Console.ForegroundColor = before;
-			before = ConsoleColor.Black;
+			//Console.ForegroundColor = before;
+			//before = ConsoleColor.Black;
 			Log.trace(obj.ToString(), args);
 		}
 

@@ -10,6 +10,10 @@ namespace MyUDP {
 		public static string[] Split(this string str, char delim) {
 			return str.Split(new char[] { delim }, StringSplitOptions.None);
 		}
+
+		public static string Join<T>(this T[] strArr, string delim) {
+			return string.Join(delim, strArr);
+		}
 	}
 
 	public static class Utils {
@@ -55,6 +59,7 @@ namespace MyUDP {
 	}
 
 	public static class Log {
+#if !UNITY_EDITOR
 		public static void trace(object a, params object[] args) {
 			Console.WriteLine(a == null ? "*null*" : a.ToString(), args);
 		}
@@ -65,6 +70,15 @@ namespace MyUDP {
 			trace(a, args);
 			Console.ForegroundColor = before;
 		}
+#else
+		public static void trace(object a, params object[] args) {
+			Debug.Log(a == null ? "*null*" : a.ToString(), args);
+		}
+
+		public static void traceError(object a, params object[] args) {
+			Debug.LogError(a, args);
+		}
+#endif
 	}
 
 	public static class MyDefaults {

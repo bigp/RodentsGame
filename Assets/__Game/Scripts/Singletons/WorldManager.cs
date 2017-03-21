@@ -23,7 +23,7 @@ public class WorldManager : Singleton<WorldManager> {
 
 	private void OnConnected() {
 		trace("Connected! Send World Bounds to NodeJS Socket.IO...");
-		NetManager.Socket.Emit("world-bounds", JsonUtility.ToJson(worldBounds));
+		/////NetManager.Socket.Emit("world-bounds", JsonUtility.ToJson(worldBounds));
 	}
 
 	// Update is called once per frame
