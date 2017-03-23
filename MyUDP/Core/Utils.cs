@@ -19,9 +19,12 @@ namespace MyUDP {
 	public static class Utils {
 		public static Random randy = new Random();
 
-		public static Timer setTimeout(TimerCallback cb, int intervalMS = 250) {
-			Timer tmr = new Timer(cb, null, intervalMS, Timeout.Infinite);
-			return tmr;
+		public static Timer setTimeout(TimerCallback cb, int intervalMS = 250, bool autoRepeat=false) {
+            int period = Timeout.Infinite;
+            if(autoRepeat) period = intervalMS;
+
+            Timer tmr = new Timer(cb, null, intervalMS, period);
+            return tmr;
 		}
 
 		private static DateTime START_DATE = new DateTime(1970, 1, 1);
@@ -59,8 +62,12 @@ namespace MyUDP {
 	}
 
 	public static class Log {
-#if !UNITY_EDITOR
-		public static void trace(object a, params object[] args) {
+#if JUST_CONSOLE
+        public static void traceClear() {
+            Console.Clear();
+        }
+
+        public static void trace(object a, params object[] args) {
 			Console.WriteLine(a == null ? "*null*" : a.ToString(), args);
 		}
 
@@ -70,7 +77,26 @@ namespace MyUDP {
 			trace(a, args);
 			Console.ForegroundColor = before;
 		}
+
+        //////////////////// Use a **Buffer** for "ClearScreen" print outs:
+
+        private static string _current = "";
+
+        public static void BufferClear() {
+            _current = "";
+        }
+        public static void BufferAdd(object a, params object[] args) {
+            _current += string.Format(a==null ? "*null*" : a.ToString(), args) + "\n";
+        }
+
+        public static void BufferOutput() {
+            trace(_current);
+        }
 #else
+        public static void traceClear() {
+            Debug.Clear();
+        }
+
 		public static void trace(object a, params object[] args) {
 			Debug.Log(a == null ? "*null*" : a.ToString(), args);
 		}
@@ -79,9 +105,9 @@ namespace MyUDP {
 			Debug.LogError(a, args);
 		}
 #endif
-	}
+    }
 
-	public static class MyDefaults {
+    public static class MyDefaults {
 		//////////////////////////////////////////////////////////// Constants & Defaults:
 		public static string CLIENT_IP = "192.168.2.127";
 		public static int CLIENT_PORT = 11000;

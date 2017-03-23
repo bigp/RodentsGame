@@ -81,97 +81,94 @@ namespace MyUDP {
 		}
 
 		public static void Test() {
-			//Test
-			Utils.GetTime();
-			Utils.setTimeout((object state) => {
-				if (lastCommand != "repeat") {
-					lastCommand = Console.ReadLine();
+			if (lastCommand != "repeat") {
+				lastCommand = Console.ReadLine();
 
-					if (!Utils.stringIsOK(lastCommand)) {
-						lastCommand = "Hello World!";
-					}
+				if (!Utils.stringIsOK(lastCommand)) {
+					lastCommand = "Hello World!";
 				}
+			}
 
-				UnityPacket pack = (UnityPacket) client.packet;
-				pack.clientTime = Utils.GetTime();
-				
-				Command cmd = new Command();
-				cmd.ackID = randy.Next(0, 10);
-				cmd.timeOffset = randy.Next(10, 30);
-				XYZData xyzData = cmd.xyzData;
+			UnityPacket pack = (UnityPacket)client.packet;
+			pack.clientTime = Utils.GetTime();
 
-				//If the command starts with a forward-slash, check if it's one of the known special commands!
-				if (lastCommand.StartsWith("/")) {
-					string lastCommandRest = lastCommand.Substring(1);
-					string[] lastCommandSplit = lastCommandRest.Split(",");
+			Command cmd = new Command();
+			cmd.ackID = randy.Next(0, 10);
+			cmd.timeOffset = randy.Next(10, 30);
+			XYZData xyzData = cmd.xyzData;
 
-					foreach(string cmdStr in lastCommandSplit) {
-						string[] cmdSplit = cmdStr.Trim().Split(' ');
+			//If the command starts with a forward-slash, check if it's one of the known special commands!
+			if (lastCommand.StartsWith("/")) {
+				string lastCommandRest = lastCommand.Substring(1);
+				string[] lastCommandSplit = lastCommandRest.Split(",");
 
-						try {
-							switch (cmdSplit[0]) {
-								case "pos":
-									if (IsBadCommand(cmdSplit, 4)) return;
-									
-									xyzData.position[0] = double.Parse(cmdSplit[1]);
-									xyzData.position[1] = double.Parse(cmdSplit[2]);
-									xyzData.position[2] = double.Parse(cmdSplit[3]);
-									cmd.types |= EPacketTypes.POSITION;
+				foreach (string cmdStr in lastCommandSplit) {
+					string[] cmdSplit = cmdStr.Trim().Split(' ');
 
-									break;
+					try {
+						switch (cmdSplit[0]) {
+							case "pos":
+								if (IsBadCommand(cmdSplit, 4)) return;
 
-								case "rot":
-									if (IsBadCommand(cmdSplit, 5)) return;
-									
-									xyzData.rotation[0] = double.Parse(cmdSplit[1]);
-									xyzData.rotation[1] = double.Parse(cmdSplit[2]);
-									xyzData.rotation[2] = double.Parse(cmdSplit[3]);
-									xyzData.rotation[3] = double.Parse(cmdSplit[4]);
-									cmd.types |= EPacketTypes.ROTATION;
+								xyzData.position[0] = double.Parse(cmdSplit[1]);
+								xyzData.position[1] = double.Parse(cmdSplit[2]);
+								xyzData.position[2] = double.Parse(cmdSplit[3]);
+								cmd.types |= EPacketTypes.POSITION;
 
-									break;
+								break;
 
-								case "action":
-									if (IsBadCommand(cmdSplit, 2)) return;
+							case "rot":
+								if (IsBadCommand(cmdSplit, 5)) return;
 
-									xyzData.action = int.Parse(cmdSplit[1]);
-									cmd.types |= EPacketTypes.ACTION;
+								xyzData.rotation[0] = double.Parse(cmdSplit[1]);
+								xyzData.rotation[1] = double.Parse(cmdSplit[2]);
+								xyzData.rotation[2] = double.Parse(cmdSplit[3]);
+								xyzData.rotation[3] = double.Parse(cmdSplit[4]);
+								cmd.types |= EPacketTypes.ROTATION;
 
-									break;
+								break;
 
-								case "ack":
-									if (IsBadCommand(cmdSplit, 2)) return;
+							case "action":
+								if (IsBadCommand(cmdSplit, 2)) return;
 
-									xyzData.ackFromServer = int.Parse(cmdSplit[1]);
-									cmd.types |= EPacketTypes.ACK;
+								xyzData.action = int.Parse(cmdSplit[1]);
+								cmd.types |= EPacketTypes.ACTION;
 
-									break;
+								break;
 
-								default:
-									xyzData.jsonData = cmdStr;
-									cmd.types |= EPacketTypes.JSON;
+							case "ack":
+								if (IsBadCommand(cmdSplit, 2)) return;
 
-									break;
-							}
-						} catch(Exception ex) {
-							Log.traceError("ClientProgram error: " + ex.Message);
+								xyzData.ackFromServer = int.Parse(cmdSplit[1]);
+								cmd.types |= EPacketTypes.ACK;
+
+								break;
+
+							default:
+								xyzData.jsonData = cmdStr;
+								cmd.types |= EPacketTypes.JSON;
+
+								break;
 						}
+					} catch (Exception ex) {
+						Log.traceError("ClientProgram error: " + ex.Message);
 					}
-
-					
-				} else {
-					cmd.types |= EPacketTypes.JSON;
-					xyzData.jsonData = lastCommand;
 				}
 
-				if(cmd.types>0) {
-					pack.commands.Clear();
-					pack.commands.Add(cmd);
 
-					client.Send();
-				}
-				Test();
-			}, 2000);
+			} else {
+				cmd.types |= EPacketTypes.JSON;
+				xyzData.jsonData = lastCommand;
+			}
+
+			if (cmd.types > 0) {
+				pack.commands.Clear();
+				pack.commands.Add(cmd);
+
+				client.Send();
+			}
+
+			Test();
 		}
 	}
 
