@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace MyUDP.Clock {
 
@@ -18,12 +17,17 @@ namespace MyUDP.Clock {
 
     //Master gear
     public class Clockwork : Gear {
+        private static object thisLock = new object();
         private Timer _internalTimer;
         private DateTime _lastDateTime;
 
         public Clockwork() : base() {
             _timeMode = EGearTimeMode.TIME_BASED;
             name = "*MASTER*";
+        }
+
+        public void Dispose() {
+            StopAutoUpdate();
         }
 
         public Clockwork StartAutoUpdate(float callsPerSecond=10) {
@@ -42,18 +46,24 @@ namespace MyUDP.Clock {
             }
         }
 
+        internal void AddInterleaving(object onSendPosition, object onSendRotation) {
+            throw new NotImplementedException();
+        }
+
         private void InternalUpdate(object state) {
-            DateTime nowDatetime = DateTime.Now;
-            TimeSpan diffTime = nowDatetime - _lastDateTime;
-            float seconds = (float) diffTime.TotalSeconds;
+            lock (thisLock) {
+                DateTime nowDatetime = DateTime.Now;
+                TimeSpan diffTime = nowDatetime - _lastDateTime;
+                float seconds = (float) diffTime.TotalSeconds;
 
-            Log.traceClear();
-            Log.trace(seconds);
+                Log.traceClear();
+                Log.trace(seconds);
 
-            this.UpdateTime(seconds, 1);
+                this.UpdateTime(seconds, 1);
 
-            Log.BufferOutput();
-            _lastDateTime = nowDatetime;
+                Log.BufferOutput();
+                _lastDateTime = nowDatetime;
+            }
         }
     }
 

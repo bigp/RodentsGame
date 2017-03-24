@@ -9,8 +9,23 @@ namespace MyUDP {
     class Program {
         static ManualResetEvent _quitEvent = new ManualResetEvent(false);
         static UnityServer server;
-        static MyUDPClient client;
-        static Clockwork clock;
+        static UnityClient client;
+
+        static ConsoleKeyInfo ReadKey(int timeoutms, char defaultChar=' ', ConsoleKey defaultKey=ConsoleKey.Spacebar) {
+            ReadKeyInfo d = Console.ReadKey;
+            IAsyncResult result = d.BeginInvoke(null, null);
+            result.AsyncWaitHandle.WaitOne(timeoutms);//timeout e.g. 15000 for 15 secs
+            if (result.IsCompleted) {
+                ConsoleKeyInfo keyInfo = d.EndInvoke(result);
+                Console.WriteLine("Key: " + keyInfo);
+                return keyInfo;
+            } else {
+                Console.WriteLine("Timed out!");
+                return new ConsoleKeyInfo(defaultChar, defaultKey, false, false, false);
+            }
+        }
+
+        delegate ConsoleKeyInfo ReadKeyInfo();
 
         static void Main(string[] args) {
             Console.CancelKeyPress += (sender, eArgs) => {
@@ -22,8 +37,8 @@ namespace MyUDP {
 
             Log.trace("MyUDP Menu: If you want to run the server, type 's'.");
             Log.trace("            Otherwise, press ENTER to run the client.");
-
-            ConsoleKeyInfo keyInfo = Console.ReadKey();
+            
+            ConsoleKeyInfo keyInfo = ReadKey(2000);
 
             Log.traceClear();
 
@@ -32,7 +47,6 @@ namespace MyUDP {
             } else {
                 MainClient();
             }
-            
 
             _quitEvent.WaitOne();
         }
@@ -48,38 +62,13 @@ namespace MyUDP {
             //};
         }
         private static void MainClient() {
-            client = new MyUDPClient();
+            client = new UnityClient();
             
         }
 
         ////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////
-
-
-        private static void Main2() {
-            clock = new Clockwork().StartAutoUpdate(2);
-            clock.AddListener(OnClockTick, false);
-            clock.AddInterleaving(OnChildGearTick1, OnChildGearTick2);
-            clock.AddInterleaving(OnChildGearTick3, OnChildGearTick3, OnChildGearTick3);
-        }
-
-        private static void OnChildGearTick1(Gear gear) {
-            Log.trace("------------- Called 1: " + gear.name);
-        }
-
-        private static void OnChildGearTick2(Gear gear) {
-            Log.trace("------------- Called 2: " + gear.name);
-        }
-
-        private static void OnChildGearTick3(Gear gear) {
-            Log.trace("------------- Called ... " + gear.name);
-        }
-
-        private static void OnClockTick(Gear masterClock) {
-            Log.BufferClear();
-            Log.BufferAdd("------- " + masterClock.name + " : " + Utils.GetTime());
-        }
     }
 }
 

@@ -12,7 +12,7 @@ namespace MyUDP {
 		//}
 
 		public static string Join<T>(this T[] strArr, string delim) {
-			return string.Join(delim, strArr);
+			return string.Join(delim, (string[]) (object) strArr);
 		}
 
         public static string Times(this string str, int repeatCount) {
@@ -26,7 +26,7 @@ namespace MyUDP {
     }
 
 	public static class Utils {
-		public static Random randy = new Random();
+		public static Random randoo = new Random();
 
 		public static Timer setTimeout(TimerCallback cb, int intervalMS = 250, bool autoRepeat=false) {
             int period = Timeout.Infinite;
@@ -36,32 +36,33 @@ namespace MyUDP {
             return tmr;
 		}
 
-		private static DateTime START_DATE = new DateTime(1970, 1, 1);
+		private static DateTime START_DATE_1970 = new DateTime(1970, 1, 1);
 		public static ulong GetTime() {
-			TimeSpan t = DateTime.Now.ToUniversalTime() - START_DATE;
+			TimeSpan t = DateTime.Now.ToUniversalTime() - START_DATE_1970;
 			return (ulong)(t.TotalMilliseconds + 0.5);
 		}
 
 		public static DateTime GetDate(ulong millis) {
-			DateTime result = DateTime.SpecifyKind(START_DATE, DateTimeKind.Utc);
+			DateTime result = DateTime.SpecifyKind(START_DATE_1970, DateTimeKind.Utc);
 			return result.AddMilliseconds(millis).ToLocalTime();
 		}
 
 		public static string Random(string[] names) {
-			return names[randy.Next(names.Length)];
+			return names[randoo.Next(names.Length)];
 		}
 
 		public static int Random(int min, int max) {
-			return randy.Next(min, max);
+			return randoo.Next(min, max);
 		}
 
 		public static int Random(int range) {
-			return randy.Next(range);
+			return randoo.Next(range);
 		}
 
 		public static void ForEachFlags<T>(T selected, Action<T> cbForEach) {
+            int selectedUint = (int)(object)selected;
 			foreach (T type in Enum.GetValues(typeof(T))) {
-				if (((Enum)(object)selected).HasFlag((Enum) (object) type)) cbForEach(type);
+				if ((selectedUint & ((int) (object) type)) > 0 ) cbForEach(type);
 			}
 		}
 
@@ -103,16 +104,20 @@ namespace MyUDP {
         }
 #else
         public static void traceClear() {
-            Debug.Clear();
+            //UnityEngine.Debug.ClearDeveloperConsole();
         }
 
 		public static void trace(object a, params object[] args) {
-			Debug.Log(a == null ? "*null*" : a.ToString(), args);
+            UnityEngine.Debug.Log(a == null ? "*null*" : a.ToString());
 		}
 
 		public static void traceError(object a, params object[] args) {
-			Debug.LogError(a, args);
+            UnityEngine.Debug.LogError(a);
 		}
+
+        public static void BufferClear() {}
+        public static void BufferAdd(object a, params object[] args) {}
+        public static void BufferOutput() {}
 #endif
     }
 

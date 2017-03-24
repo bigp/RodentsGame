@@ -12,9 +12,11 @@ namespace MyUDP {
 	using ClientList = Dictionary<EndPoint, MyUDPServerClient>;
 
 	public class MyUDPServer : MyUDPCore {
-		/////////////////////////////////////////////////////////////////////////////// Privates & Getters:
+        private Object thisLock = new Object();
+        
+        /////////////////////////////////////////////////////////////////////////////// Privates & Getters:
 
-		private ClientList _clientList;
+        private ClientList _clientList;
 		public ClientList clientList { get { return this._clientList; } }
 
 		private Socket _socket;
@@ -50,16 +52,16 @@ namespace MyUDP {
 		}
 #else
 		public static void trace(object obj, params object[] args) {
-			Log.trace("[MyUDP Server] " + obj.ToString(), args);
+			//Log.trace("[MyUDP Server] " + obj.ToString(), args);
 		}
 
 		public static void traceError(object obj, params object[] args) {
-			Log.trace("[MyUDP Server] ERROR: " + obj.ToString(), args);
+			//Log.trace("[MyUDP Server] ERROR: " + obj.ToString(), args);
 		}
 #endif
-		/////////////////////////////////////////////////////////////////////////////// Constructor:
+        /////////////////////////////////////////////////////////////////////////////// Constructor:
 
-		public MyUDPServer(int port=-1, int dataStreamSize=-1, bool autoListens=true) : base(port, dataStreamSize) {
+        public MyUDPServer(int port=-1, int dataStreamSize=-1, bool autoListens=true) : base(port, dataStreamSize) {
 			_clientList = new ClientList();  // Initialise list of connected clients
             _reusedEndpoint = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
 
@@ -68,14 +70,12 @@ namespace MyUDP {
 				_socket.Bind(new IPEndPoint(IPAddress.Any, _port));
 				
 				if (autoListens) {
-					trace("Listening on port: " + _port);
-					Listen();
+					Init();
+                    Listen();
 				}
 			} catch (Exception ex) {
 				trace("Init Error: " + ex.Message);
 			}
-
-            Init();
 		}
 
         public virtual void Init() {
@@ -93,6 +93,7 @@ namespace MyUDP {
 			if(callback==null) callback = this.OnMainReceivingLoop;
 			
 			EndPoint ep = (EndPoint) _endpointIn;
+
 			// Start listening for incoming data
 			_socket.BeginReceiveFrom(
 				_byteStream, 0,
@@ -107,19 +108,22 @@ namespace MyUDP {
 		//**************************************************************************\\\\\
 
 		private void OnMainReceivingLoop(IAsyncResult asyncResult) {
-			if(isClearConsoleOnReceive) Console.Clear();
+            lock (thisLock) {
+#if JUST_CONSOLE
+                if (isClearConsoleOnReceive) Console.Clear();
+#endif
+                try {
+                    MyUDPServerClient client = GetClient(asyncResult);
 
-			try {
-				MyUDPServerClient client = GetClient(asyncResult);
-				
-				if(OnDataReceived!=null) OnDataReceived(packet, client);
+                    if (OnDataReceived != null) OnDataReceived(packet, client);
 
-                Demo();
+                    //Demo();
 
-                Listen();
-			} catch (Exception ex) {
-				trace("ReceiveData Error: " + ex.Message);
-			}
+                    Listen();
+                } catch (Exception ex) {
+                    trace("ReceiveData Error: " + ex.Message);
+                }
+            }
 		}
 
         private void Demo() {
@@ -142,10 +146,8 @@ namespace MyUDP {
 			int byteCount = socket.EndReceiveFrom(asyncResult, ref _reusedEndpoint);
 
 			MyUDPServerClient client;
-			string preOutput = _reusedEndpoint + " (bytes: {0})";
 
 			if (!_clientList.ContainsKey(_reusedEndpoint)) {
-				trace(preOutput + " ** New Client! **", byteCount);
 				client = new MyUDPServerClient(this);
 				client._endpointIn = (IPEndPoint)_reusedEndpoint;
 				client.SetPacketType(this.packet.GetType());
@@ -159,7 +161,6 @@ namespace MyUDP {
                 if(OnNewClient!=null) OnNewClient(client);
 
             } else {
-				trace(preOutput, byteCount);
 				client = _clientList[_reusedEndpoint];
 			}
 
@@ -176,20 +177,14 @@ namespace MyUDP {
 		//////////////////////////////////////////// *********************** /
 
 		public void SendData(byte[] bytesOut, int length, MyUDPServerClient client, AsyncCallback callback = null) {
-			trace("----> Client: " + client.ToString() + " bytes: " + length);
-
 			__SendData(bytesOut, length, client, callback);
 		}
 
 		public void SendAll(byte[] bytesOut, int length, AsyncCallback callback = null, EndPoint endpointException = null) {
-			trace(this._clientList.Count);
-
-			trace("SendAll...");
 			foreach (MyUDPServerClient client in this._clientList.Values) {
 				bool isSelf = endpointException == null ? false : client._endpointIn == endpointException;
 				if (isSelf) continue;
 
-				trace("   --> Client: " + client.ToString() + " bytes: " + length);
 				__SendData(bytesOut, length, client, callback);
 			}
 		}
@@ -232,11 +227,13 @@ namespace MyUDP {
 		}
 
 		private void OnSendDataComplete(IAsyncResult asyncResult) {
-			try {
-				socket.EndSend(asyncResult);
-			} catch (Exception ex) {
-				trace("SendData Error: " + ex.Message);
-			}
+            lock (thisLock) {
+                try {
+                    socket.EndSend(asyncResult);
+                } catch (Exception ex) {
+                    trace("SendData Error: " + ex.Message);
+                }
+            }
 		}
 	}
 

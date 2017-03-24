@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
 
@@ -75,16 +74,22 @@ namespace MyUDP {
 
 			_endpointOut = new IPEndPoint(ipAddr, _port);
 			
+            Init();
+
 			if(autoConnect) Connect(_port);
 		}
-		
-		public void Close() {
+
+        public virtual void Init() {
+            // ...
+        }
+
+        public virtual void Close() {
 			_socket.Close();
 		}
 
 		///////////////////////////////////////////////////////////////////////////////
 
-		public void Connect(int port = -1) {
+		public virtual void Connect(int port = -1) {
 			if(port<0) port = this._port;
 
 			try {
@@ -108,14 +113,14 @@ namespace MyUDP {
 			_socket.BeginReceive(callback, _endpointIn);
 		}
 
-		public void Send() {
+		public virtual void Send() {
 			try {
 				_packet.Encode(_byteStream);
 				if (OnPacketPreSend != null) OnPacketPreSend(_packet);
 
 				_socket.Send(_byteStream, _packet.byteLength, _endpointOut);
 			} catch (Exception ex) {
-				traceError("Send error: " + ex.Message);
+				traceError("Send error: " + ex.ToString());
 			}
 		}
 
@@ -131,7 +136,6 @@ namespace MyUDP {
 			} catch(Exception ex) {
 				traceError("OnDataReceived error: " + ex.Message);
 				if(ex.Message.Contains("forcibly")) {
-					traceError("setting connect to false......");
 					//_isConnected = false;
 				}
 			}

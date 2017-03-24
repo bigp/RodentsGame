@@ -2,37 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace MyUDP {
 	using Packet;
-	/*
-		======================================
-				======================
-				-- PACKET STRUCTURE --
-				======================
-		Description		 Size(bytes)	
-		======================================
-		HEADER_TYPE		| byte(1)
-		--------------------------------------
-		0				|		type(0-15)		<== ** Bitwise AND with 0xF to mask **
-		0				|		XXX					Depending on the technical needs of the header, 
-		0				|		XXX					this could represent up to 15 different functions.
-		0				|		XXX
-						|
-	  					| ( [F] = Bitflag )
-		0				| [F]   SEND-EXCEPT		<== Sends message to all but 1 client
-		0				| [F]   SEND-OTHERS		<== Sends message to others (not self)
-		0				| [F]	SEND-SELF		<==	Sends message to self (server to client request, ex: game state).
-		0				| [F]	SEND-1v1		<== Sends message in private with other client(ex: private chat) 
-		--------------------------------------
-		HEADER_TYPE(0) = CONNECT
-		--------------------------------------
-
-		======================================
-	 */
-
-	// ===================================
+	
+    // ===================================
 	//       -- PACKET STRUCTURE --
 	// 
 	// Description        Size (bytes)
@@ -51,13 +25,7 @@ namespace MyUDP {
 
 	namespace Packet {
 		[Flags]
-		public enum EPacketTypes {
-			ACK = 1,
-			ACTION = 2,
-			POSITION = 4,
-			ROTATION = 8,
-			JSON = 64
-		}
+		public enum EPacketTypes { ACK = 1, ACTION = 2, POSITION = 4, ROTATION = 8, JSON = 64 }
 
 		public class Command {
 			public int ackID = -1;
@@ -77,7 +45,7 @@ namespace MyUDP {
 
 	public class UnityPacket : MyUDPPacket {
 		public ulong clientTime = 0;
-		public int numOfCommands = 0;
+		public int numOfCommands { get { return commands==null ? 0 : commands.Count; } }
 		public List<Command> commands;
 
 		public string clientTimeFormatted {
@@ -89,8 +57,6 @@ namespace MyUDP {
 		}
 
 		public override void EncodeCustom() {
-			numOfCommands = commands.Count;
-
 			WriteULongs(clientTime);
 			WriteInts(numOfCommands);
 
@@ -103,47 +69,28 @@ namespace MyUDP {
 
 				XYZData xyzData = cmd.xyzData;
 
-				//string preview = "";
 				Utils.ForEachFlags(cmd.types, (flag) => {
-
 					switch (flag) {
-						case EPacketTypes.ACK:
-							//preview += "\n  ACK: " + xyzData.ackFromServer;
-							WriteInts(xyzData.ackFromServer);
-							break;
-						case EPacketTypes.ACTION:
-							//preview += "\n  ACTION: " + xyzData.action;
-							WriteInts(xyzData.action);
-							break;
-						case EPacketTypes.POSITION:
-							//preview += "\n  POS: " + xyzData.position.Join(", ");
-							WriteDoubles(xyzData.position);
-							break;
-						case EPacketTypes.ROTATION:
-							//preview += "\n  ROT: " + xyzData.rotation.Join(", ");
-							WriteDoubles(xyzData.rotation);
-							break;
-						case EPacketTypes.JSON:
-							//preview += "\n  JSON: " + xyzData.jsonData;
-							WriteStrings(xyzData.jsonData);
-							break;
+						case EPacketTypes.ACK: WriteInts(xyzData.ackFromServer); break;
+						case EPacketTypes.ACTION: WriteInts(xyzData.action); break;
+						case EPacketTypes.POSITION: WriteDoubles(xyzData.position); break;
+						case EPacketTypes.ROTATION: WriteDoubles(xyzData.rotation); break;
+						case EPacketTypes.JSON: WriteStrings(xyzData.jsonData); break;
 						default:
 							Log.traceError("Unhandled WRITE Packet Type found!" + flag);
 							break;
 					}
 				});
-
-				//Log.trace("Encoding: " + preview);
 			}
 		}
 
 		public override void DecodeCustom() {
 			clientTime = ReadULong();
-			numOfCommands = ReadInt();
+			int commandCount = ReadInt();
 
 			commands.Clear();
 
-			for (int c = 0; c < numOfCommands; c++) {
+			for (int c = 0; c < commandCount; c++) {
 				Command cmd = new Command();
 
 				cmd.ackID = ReadInt();
@@ -155,13 +102,10 @@ namespace MyUDP {
 				if (cmd.types > 0) {
 					Utils.ForEachFlags(cmd.types, (flag) => {
 						switch (flag) {
-							case EPacketTypes.ACK:
-								xyzData.ackFromServer = ReadInt();
-								break;
-							case EPacketTypes.ACTION:
-								xyzData.action = ReadInt();
-								break;
-							case EPacketTypes.POSITION:
+							case EPacketTypes.ACK: xyzData.ackFromServer = ReadInt(); break;
+                            case EPacketTypes.JSON: xyzData.jsonData = ReadString(); break;
+                            case EPacketTypes.ACTION: xyzData.action = ReadInt(); break;
+                            case EPacketTypes.POSITION:
 								xyzData.position = new double[3];
 								xyzData.position[0] = ReadDouble();
 								xyzData.position[1] = ReadDouble();
@@ -173,9 +117,6 @@ namespace MyUDP {
 								xyzData.rotation[1] = ReadDouble();
 								xyzData.rotation[2] = ReadDouble();
 								xyzData.rotation[3] = ReadDouble();
-								break;
-							case EPacketTypes.JSON:
-								xyzData.jsonData = ReadString();
 								break;
 							default:
 								Log.traceError("Unhandled READ Packet Type found!" + flag);

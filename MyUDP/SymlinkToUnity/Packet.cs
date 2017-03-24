@@ -46,6 +46,7 @@ namespace MyUDP {
 			EncodeCustom();
 
 			if (destination != null) {
+                Log.trace(_bytesList.Count);
 				_bytesList.CopyTo(destination);
 				return destination;
 			}
@@ -110,7 +111,11 @@ namespace MyUDP {
 			}
 		}
 
-		protected void WriteBytes(params byte[] bytes) {
+        internal void CopyTo(MyUDPPacket dest) {
+            dest.Decode(_byteStream);
+        }
+
+        protected void WriteBytes(params byte[] bytes) {
 			_bytesList.AddRange(bytes);
 			_byteLength += bytes.Length;
 		}
