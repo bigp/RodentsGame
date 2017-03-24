@@ -14,7 +14,16 @@ namespace MyUDP {
 		public static string Join<T>(this T[] strArr, string delim) {
 			return string.Join(delim, strArr);
 		}
-	}
+
+        public static string Times(this string str, int repeatCount) {
+            string output = "";
+            while (repeatCount > 0) {
+                output += str;
+                repeatCount--;
+            }
+            return output;
+        }
+    }
 
 	public static class Utils {
 		public static Random randy = new Random();

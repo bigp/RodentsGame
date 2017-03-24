@@ -26,7 +26,7 @@ namespace MyUDP.Clock {
             name = "*MASTER*";
         }
 
-        public Clockwork StartAutoUpdate(int callsPerSecond=10) {
+        public Clockwork StartAutoUpdate(float callsPerSecond=10) {
             StopAutoUpdate();
 
             _lastDateTime = DateTime.Now;
@@ -170,7 +170,7 @@ namespace MyUDP.Clock {
         }
 
         public Gear UpdateTime(float deltaTime, int frames) {
-            if(_timeScale<=0 || (deltaTime<=0 && frames<=0)) return this;
+            if(!isEnabled || _timeScale <= 0 || (deltaTime<=0 && frames<=0)) return this;
 
             float adjustedDeltaTime = deltaTime * _timeScale;
 

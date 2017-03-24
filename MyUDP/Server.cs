@@ -20,7 +20,11 @@ namespace MyUDP {
 		private Socket _socket;
 		public Socket socket { get { return this._socket; } }
 
-		public Action<MyUDPPacket> OnPacketDecoded;
+        //Not sure this reused endpoint object is a 'good' thing, might be comparing by ref incorrectly :/
+        private EndPoint _reusedEndpoint;
+
+        public Action<MyUDPServerClient> OnNewClient;
+        public Action<MyUDPPacket> OnPacketDecoded;
 		public Action<MyUDPPacket> OnPacketEncoded;
 		public Action<MyUDPPacket, MyUDPServerClient> OnDataReceived;
 
@@ -28,7 +32,7 @@ namespace MyUDP {
 
 		/////////////////////////////////////////////////////////////////////////////// Internal helper methods:
 
-#if !UNITY_EDITOR
+#if JUST_CONSOLE
 		public static void trace(object obj, params object[] args) {
 			ConsoleColor before = Console.ForegroundColor;
 			Console.ForegroundColor = ConsoleColor.Green;
@@ -56,9 +60,10 @@ namespace MyUDP {
 		/////////////////////////////////////////////////////////////////////////////// Constructor:
 
 		public MyUDPServer(int port=-1, int dataStreamSize=-1, bool autoListens=true) : base(port, dataStreamSize) {
-			this._clientList = new ClientList();  // Initialise list of connected clients
-			
-			try {
+			_clientList = new ClientList();  // Initialise list of connected clients
+            _reusedEndpoint = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
+
+            try {
 				_socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 				_socket.Bind(new IPEndPoint(IPAddress.Any, _port));
 				
@@ -69,11 +74,17 @@ namespace MyUDP {
 			} catch (Exception ex) {
 				trace("Init Error: " + ex.Message);
 			}
+
+            Init();
 		}
 
-		/////////////////////////////////////////////////////////////////////////////// Methods:
+        public virtual void Init() {
+            
+        }
 
-		public void Close() {
+        /////////////////////////////////////////////////////////////////////////////// Methods:
+
+        public void Close() {
 			_socket.Close();
 			clientList.Clear();
 		}
@@ -100,53 +111,56 @@ namespace MyUDP {
 
 			try {
 				MyUDPServerClient client = GetClient(asyncResult);
-				//trace("Received: " + client.ToString() + " - " + client.packetIn.clientTimeFormatted + " #commands: " + client.packet.numOfCommands);
-
+				
 				if(OnDataReceived!=null) OnDataReceived(packet, client);
 
-				bool bytesOK = false;
-				try {
-					_packet.Encode(_byteStream);
-					if(OnPacketEncoded!=null) OnPacketEncoded(_packet);
-					bytesOK = true;
-				} catch (Exception ex) {
-					Log.traceError("Packet Encode error: " + ex.Message);
-				}
+                Demo();
 
-				if(bytesOK) SendAll(_byteStream, _packet.byteLength);
-
-				//WaitForNextData(client.endpointIncoming); // Listen for more connections again...
-				Listen();
+                Listen();
 			} catch (Exception ex) {
 				trace("ReceiveData Error: " + ex.Message);
 			}
 		}
 
+        private void Demo() {
+            bool bytesOK = false;
+            try {
+                _packet.Encode(_byteStream);
+                if (OnPacketEncoded != null) OnPacketEncoded(_packet);
+                bytesOK = true;
+            } catch (Exception ex) {
+                Log.traceError("Packet Encode error: " + ex.Message);
+            }
+
+            if (bytesOK) SendAll(_byteStream, _packet.byteLength);
+        }
+
 		//**************************************************************************/////
 
 		private MyUDPServerClient GetClient(IAsyncResult asyncResult) {
-			// Initialise the IPEndPoint for the clients
-			EndPoint epClient = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
-
-			// Receive all data & assigns the IPEndPoint of the incoming client:
-			int byteCount = socket.EndReceiveFrom(asyncResult, ref epClient);
+            // Receive all data & assigns the IPEndPoint of the incoming client:
+			int byteCount = socket.EndReceiveFrom(asyncResult, ref _reusedEndpoint);
 
 			MyUDPServerClient client;
-			string pre = epClient + " (bytes: {0})";
+			string preOutput = _reusedEndpoint + " (bytes: {0})";
 
-			if (!_clientList.ContainsKey(epClient)) {
-				trace(pre + " ** New Client! **", byteCount);
+			if (!_clientList.ContainsKey(_reusedEndpoint)) {
+				trace(preOutput + " ** New Client! **", byteCount);
 				client = new MyUDPServerClient(this);
-				client._endpointIn = (IPEndPoint)epClient;
+				client._endpointIn = (IPEndPoint)_reusedEndpoint;
 				client.SetPacketType(this.packet.GetType());
-				_clientList[epClient] = client;
-
+				
 				if (client.packet == null) {
 					throw new Exception("client.packet is null! Probably didn't initialize correctly.");
-				}
-			} else {
-				trace(pre, byteCount);
-				client = _clientList[epClient];
+				} else {
+                    _clientList[_reusedEndpoint] = client;
+                }
+
+                if(OnNewClient!=null) OnNewClient(client);
+
+            } else {
+				trace(preOutput, byteCount);
+				client = _clientList[_reusedEndpoint];
 			}
 
 			try {
@@ -180,7 +194,32 @@ namespace MyUDP {
 			}
 		}
 
-		private void __SendData(byte[] bytesOut, int length, MyUDPServerClient client, AsyncCallback callback = null) {
+        public bool ForgetClient(EndPoint epClient) {
+            if(clientList.ContainsKey(epClient)) {
+                clientList.Remove(epClient);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool ForgetClient(MyUDPServerClient client) {
+            EndPoint epFound = null;
+            foreach(EndPoint ep in clientList.Keys) {
+                if(ep == client.endpointIn) {
+                    epFound = ep;
+                    break;
+                }
+            }
+
+            if(epFound!=null) {
+                clientList.Remove(epFound);
+                return true;
+            }
+            return false;
+        }
+
+        private void __SendData(byte[] bytesOut, int length, MyUDPServerClient client, AsyncCallback callback = null) {
 			if (callback == null) callback = this.OnSendDataComplete;
 
 			_socket.BeginSendTo(
