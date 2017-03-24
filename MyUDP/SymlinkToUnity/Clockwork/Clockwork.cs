@@ -201,7 +201,7 @@ namespace MyUDP.Clock {
                         iterations++;
                     }
                     break;
-                default: Log.BufferAdd("Unknown time-mode for gear: " + this.name);
+                default: Log.BufferLine("Unknown time-mode for gear: " + this.name);
                     break;
             }
 

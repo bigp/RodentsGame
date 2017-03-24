@@ -125,14 +125,21 @@ namespace MyUDP.UnityPreset {
 
             //List<UnityServerClient> clients = clientsUnity.Values;
 
+            int iterator = 0;
             foreach (UnityServerClient unityClient in clientsUnity.Values) {
                 double diffNow = timeNow - unityClient.timeLastReceived;
                 double diffSeconds = diffNow * 0.001f;
                 double diffFromForget = timeForForget - diffSeconds;
-                int diffInt = (int)(diffFromForget * 2);
-                Log.BufferAdd(unityClient.ToString() + ": " + "#".Times(diffInt));
+                int diffInt = (int)(diffFromForget);
+                int restInt = (int)(timeForForget - diffInt);
 
-                if(!unityClient.HasFlag(EClientStatus.SLEEPING)) {
+                string cliStr = unityClient.clientID.ToString();
+                Log.BufferString(unityClient.clientID + ": " + "#".Times(diffInt) + " ".Times(restInt) + " ".Times(3 - cliStr.Length));
+
+                iterator++;
+                if((iterator%4)==0) Log.BufferString("\n");
+
+                if (!unityClient.HasFlag(EClientStatus.SLEEPING)) {
                     if (diffSeconds > timeForSleep) {
                         unityClient.status |= EClientStatus.SLEEPING;
                     }

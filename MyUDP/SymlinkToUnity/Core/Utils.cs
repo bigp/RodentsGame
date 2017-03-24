@@ -95,8 +95,12 @@ namespace MyUDP {
         public static void BufferClear() {
             _current = "";
         }
-        public static void BufferAdd(object a, params object[] args) {
-            _current += string.Format(a==null ? "*null*" : a.ToString(), args) + "\n";
+        public static void BufferLine(object a, params object[] args) {
+            _current += string.Format(a == null ? "*null*" : a.ToString(), args) + "\n";
+        }
+
+        public static void BufferString(object a, params object[] args) {
+            _current += string.Format(a == null ? "*null*" : a.ToString(), args);
         }
 
         public static void BufferOutput() {

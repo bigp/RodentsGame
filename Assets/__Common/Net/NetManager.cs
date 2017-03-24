@@ -5,39 +5,25 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using ExtensionMethods;
-
 using MyUDP;
 using MyUDP.Packet;
-
-
-//using BestHTTP;
-//using BestHTTP.SocketIO;
-
+using MyUDP.UnityPreset;
 
 public class NetManager : Singleton<NetManager> {
-
-	//private SocketManager _manager;
-	//private Socket _socket;
-
-	//public static SocketManager Manager { get { return Instance._manager; } }
-	//public static Socket Socket { get { return Instance._socket; } }
+    
 	public static Action WhenConnected;
 	public static MyUDPServer server;
-	public static MyUDPClient client;
+	public static UnityClient client;
 
 	public float counterInterval = 1.0f;
 	private float _counter;
 
 	// Use this for initialization
 	void Start () {
-		//_manager = new SocketManager(new Uri("http://localhost:9999/socket.io/"));
-		//_socket = _manager.Socket;
-		//_socket.On("connect", OnConnected);
-		//_socket.On("echo", OnEcho);
 
 		trace("Socket started.");
 
-		client = new MyUDPClient();
+		client = new UnityClient();
 
 		_counter = counterInterval;
 	}
@@ -50,20 +36,20 @@ public class NetManager : Singleton<NetManager> {
 
 		Transform trans = PlayerManager.Instance.transform;
 
-		var cmd = new Command();
-		cmd.xyzData = new XYZData();
-		SetPosition(ref cmd, ref cmd.xyzData, trans);
-		SetRotation(ref cmd, ref cmd.xyzData, trans);
-		SetAction(ref cmd, ref cmd.xyzData, RandomNum());
-		SetJSON(ref cmd, "Hello! " + Time.frameCount);
+		//var cmd = new Command();
+		//cmd.xyzData = new XYZData();
+		//SetPosition(ref cmd, ref cmd.xyzData, trans);
+		//SetRotation(ref cmd, ref cmd.xyzData, trans);
+		//SetAction(ref cmd, ref cmd.xyzData, RandomNum());
+		//SetJSON(ref cmd, "Hello! " + Time.frameCount);
 
-		if (client.packet.commands.Count==0) {
-			client.packet.commands.Add(cmd);
-		} else {
-			client.packet.commands[0] = cmd;
-		}
+		//if (client.packet.commands.Count==0) {
+		//	client.packet.commands.Add(cmd);
+		//} else {
+		//	client.packet.commands[0] = cmd;
+		//}
 
-		client.Send();
+		//client.Send();
 	}
 
 	private static int RandomNum() {
@@ -95,27 +81,10 @@ public class NetManager : Singleton<NetManager> {
 
 	public static void SetJSON(ref Command cmd, string data) {
 		cmd.types |= EPacketTypes.JSON;
-		cmd.jsonData = data;
+		cmd.xyzData.jsonData = data;
 	}
 
 	void OnApplicationQuit() {
-		//if(_socket==null) return;
-		//trace("_socket.Disconnect...");
-		//_socket.Disconnect();
 		client.Close();
 	}
-
-	//void OnConnected(Socket socket, Packet packet, params object[] args) {
-	//	trace("Socket Connected!");
-
-	//	if(WhenConnected != null) {
-	//		WhenConnected();
-	//	}
-
-	//	//_socket.Emit("echo", "Testing");
-	//}
-
-	//void OnEcho(Socket socket, Packet packet, params object[] args) {
-	//	trace("Echo received! " + args[0]);
-	//}
 }
