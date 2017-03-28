@@ -17,7 +17,6 @@ namespace MyUDP.UnityPreset {
     }
 
     class UnityServer : MyUDPServer {
-        public static float DEFAULT_UPDATE_RATE = 10f;
         private Object thisLock = new Object();
 
         public Clockwork masterClock;
@@ -40,7 +39,10 @@ namespace MyUDP.UnityPreset {
                 return timeDiff.TotalMilliseconds;
             }
         }
-        public override void Init() {
+
+        public UnityServer(float clockRatePerSecond=10f, int port = -1, int dataStreamSize = -1, bool autoListens = true)
+                : base(port, dataStreamSize, autoListens) {
+
             clientsUnity = new UnityClients();
             clientsToForget = new List<UnityServerClient>();
             SetPacketType<UnityPacket>();
@@ -52,7 +54,7 @@ namespace MyUDP.UnityPreset {
             this.OnDataReceived += OnUnityDataReceived;
 
             //Set the "ticker" for sending messages back at given intervals:
-            masterClock = new Clockwork().StartAutoUpdate(DEFAULT_UPDATE_RATE);
+            masterClock = new Clockwork().StartAutoUpdate(clockRatePerSecond);
             masterClock.AddInterleaving(OnReadyToSendPositions, OnReadyToSendRotations);
             masterClock.AddGear("Unity Housekeeping").AddListener(OnUnityCheckClientsAlive);
         }

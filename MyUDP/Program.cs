@@ -36,9 +36,9 @@ namespace MyUDP {
             };
 
             Log.trace("MyUDP Menu: If you want to run the server, type 's'.");
-            Log.trace("            Otherwise, press ENTER to run the client.");
+            Log.trace("            Otherwise, let the timer run out: (3 seconds).");
             
-            ConsoleKeyInfo keyInfo = ReadKey(2000);
+            ConsoleKeyInfo keyInfo = ReadKey(3000);
 
             Log.traceClear();
 
@@ -56,14 +56,16 @@ namespace MyUDP {
         ////////////////////////////////////////////////////////////////////////////////////
 
         private static void MainServer() {
-            server = new UnityServer();
+            server = new UnityServer(5);
             //server.OnDataReceived += (MyUDPPacket packet, MyUDPServerClient client) => {
             //    Log.trace("GOT DATA!");
             //};
         }
+
         private static void MainClient() {
-            client = new UnityClient();
-            
+            client = new UnityClient(5, "127.0.0.1");
+
+
         }
 
         ////////////////////////////////////////////////////////////////////////////////////

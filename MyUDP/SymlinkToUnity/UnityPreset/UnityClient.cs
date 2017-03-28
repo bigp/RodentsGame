@@ -15,7 +15,8 @@ namespace MyUDP.UnityPreset {
         private CommandsByTypes commandsLast;
 
         private int _ackCounter = 1;
-        public override void Init() {
+
+        public UnityClient(float clockRatePerSecond= 10f, string hostname = "127.0.0.1", int port = -1, int dataStreamSize = -1, bool autoConnect = true) : base(hostname, port, dataStreamSize, autoConnect) {
             commandsNotAcked = new List<Command>();
             commandsLast = new CommandsByTypes();
             SetPacketType<UnityPacket>();

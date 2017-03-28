@@ -73,15 +73,9 @@ namespace MyUDP {
 			}
 
 			_endpointOut = new IPEndPoint(ipAddr, _port);
-			
-            Init();
 
 			if(autoConnect) Connect(_port);
 		}
-
-        public virtual void Init() {
-            // ...
-        }
 
         public virtual void Close() {
 			_socket.Close();

@@ -70,17 +70,12 @@ namespace MyUDP {
 				_socket.Bind(new IPEndPoint(IPAddress.Any, _port));
 				
 				if (autoListens) {
-					Init();
                     Listen();
 				}
 			} catch (Exception ex) {
 				trace("Init Error: " + ex.Message);
 			}
 		}
-
-        public virtual void Init() {
-            
-        }
 
         /////////////////////////////////////////////////////////////////////////////// Methods:
 
