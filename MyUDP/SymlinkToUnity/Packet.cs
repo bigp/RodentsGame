@@ -6,7 +6,7 @@ using System.Text;
 namespace MyUDP {
 	using Core;
 
-	public abstract class MyUDPPacket {
+	public class MyUDPPacket {
 		private int _byteLength = 0;
 		private byte[] _byteStream;
 		private List<byte> _bytesList;

@@ -120,7 +120,8 @@ namespace MyUDP {
 		}
 
         public static void BufferClear() {}
-        public static void BufferAdd(object a, params object[] args) {}
+        public static void BufferLine(object a, params object[] args) {}
+        public static void BufferString(object a, params object[] args) {}
         public static void BufferOutput() {}
 #endif
     }

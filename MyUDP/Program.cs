@@ -5,12 +5,10 @@ using System.Threading;
 namespace MyUDP {
     using Clock;
     using UnityPreset;
+    using Rev2Beta;
 
     class Program {
         static ManualResetEvent _quitEvent = new ManualResetEvent(false);
-        static UnityServer server;
-        static UnityClient client;
-
         static ConsoleKeyInfo ReadKey(int timeoutms, char defaultChar=' ', ConsoleKey defaultKey=ConsoleKey.Spacebar) {
             ReadKeyInfo d = Console.ReadKey;
             IAsyncResult result = d.BeginInvoke(null, null);
@@ -37,7 +35,7 @@ namespace MyUDP {
 
             Log.trace("MyUDP Menu: If you want to run the server, type 's'.");
             Log.trace("            Otherwise, let the timer run out: (3 seconds).");
-            
+
             ConsoleKeyInfo keyInfo = ReadKey(3000);
 
             Log.traceClear();
@@ -55,18 +53,27 @@ namespace MyUDP {
         ////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////
 
+        static Server2 server;
+        static Client2 client;
+
         private static void MainServer() {
-            server = new UnityServer(5);
-            //server.OnDataReceived += (MyUDPPacket packet, MyUDPServerClient client) => {
-            //    Log.trace("GOT DATA!");
-            //};
+            server = new Server2();
         }
 
         private static void MainClient() {
-            client = new UnityClient(5, "127.0.0.1");
-
-
+            client = new Client2();
         }
+
+        //static UnityServer server;
+        //static UnityClient client;
+
+        //private static void MainServer() {
+        //    server = new UnityServer(5);
+        //}
+
+        //private static void MainClient() {
+        //    client = new UnityClient(5, "127.0.0.1");
+        //}
 
         ////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////
