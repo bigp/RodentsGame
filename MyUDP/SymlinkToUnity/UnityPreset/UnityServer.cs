@@ -4,70 +4,52 @@ using System.Linq;
 using System.Text;
 
 namespace MyUDP.UnityPreset {
+    using Rev2Beta;
     using Clock;
-    using UnityClients = Dictionary<MyUDPServerClient, UnityServerClient>;
+    using UnityClients = Dictionary<Rev2Beta.Client2, UnityClient>;
+    using System.Net;
 
-    [Flags]
-    public enum EClientStatus {
-        NEW = 1,
-        CONNECTED = 2,
-        SLEEPING = 4,
-        WAKING = 8,
-        DISCONNECTED = 16,
-    }
-
-    class UnityServer : MyUDPServer {
+    class UnityServer : Server2 {
         private Object thisLock = new Object();
 
-        public Clockwork masterClock;
+        public Clockwork clockTicker;
+
         public UnityClients clientsUnity;
-        public List<UnityServerClient> clientsToForget;
+        public List<UnityClient> clientsToForget;
 
         public float timeForSleep = 8;
         public float timeForForget = 15;
         public DateTime timeStarted;
 
-        public Action<UnityServerClient> OnClientSleeping;
-        public Action<UnityServerClient> OnClientWaking;
-        public Action<UnityServerClient> OnClientReturned;
-        public Action<UnityServerClient> OnClientForgetting;
+        public Action<UnityClient> OnClientSleeping;
+        public Action<UnityClient> OnClientWaking;
+        public Action<UnityClient> OnClientReturned;
+        public Action<UnityClient> OnClientDisconnected;
         
-        public double timeSinceStart {
-            get {
-                DateTime timeNow = DateTime.Now;
-                TimeSpan timeDiff = timeNow - timeStarted;
-                return timeDiff.TotalMilliseconds;
-            }
+        public double GetTimeSinceStart() {
+            DateTime timeNow = DateTime.Now;
+            TimeSpan timeDiff = timeNow - timeStarted;
+            return timeDiff.TotalMilliseconds;
         }
 
         public UnityServer(float clockRatePerSecond=10f, int port = -1, int dataStreamSize = -1, bool autoListens = true)
                 : base(port, dataStreamSize, autoListens) {
 
             clientsUnity = new UnityClients();
-            clientsToForget = new List<UnityServerClient>();
-            SetPacketType<UnityPacket>();
+            clientsToForget = new List<UnityClient>();
 
             timeStarted = DateTime.Now;
 
             //Hook-up the events:
             this.OnNewClient += OnNewUnityClient;
-            this.OnDataReceived += OnUnityDataReceived;
+            this.OnDataReceived += OnClientReceivedData;
 
             //Set the "ticker" for sending messages back at given intervals:
-            masterClock = new Clockwork().StartAutoUpdate(clockRatePerSecond);
-            masterClock.AddInterleaving(OnReadyToSendPositions, OnReadyToSendRotations);
-            masterClock.AddGear("Unity Housekeeping").AddListener(OnUnityCheckClientsAlive);
+            clockTicker = new Clockwork().StartAutoUpdate(clockRatePerSecond);
+            clockTicker.AddGear("Unity Housekeeping").AddListener(OnUnityCheckClientsAlive);
         }
 
-        public void OnReadyToSendPositions(Gear gear) {
-            
-        }
-
-        public void OnReadyToSendRotations(Gear gear) {
-
-        }
-
-        private UnityServerClient Resolve(MyUDPServerClient client) {
+        private UnityClient Resolve(Client2 client) {
             if(!clientsUnity.ContainsKey(client)) {
                 throw new Exception("Resolve ERROR - Missing 'UnityServerClient' object for client: " + client.ToString());
             }
@@ -75,33 +57,27 @@ namespace MyUDP.UnityPreset {
             return clientsUnity[client];
         }
 
-        private void OnNewUnityClient(MyUDPServerClient client) {
+        private void OnNewUnityClient(Client2 client) {
             if(clientsUnity.ContainsKey(client)) {
                 throw new Exception("OnNewUnityClient ERROR - Already has the client, NOT NEW: " + client.ToString());
             }
-
-            clientsUnity[client] = new UnityServerClient(client);
+            
+            //Pass '-1' to the clockRate to indicate we will manually control the Message flow with a few server binding hooks:
+            clientsUnity[client] = new UnityClient(client, -1);
         }
 
-        
+        private void OnClientReceivedData(Client2 client) {
+            UnityClient unityClient = Resolve(client);
+            //UnityPacket unityPacket = (UnityPacket)packet;
 
-        private void OnUnityDataReceived(MyUDPPacket packet, MyUDPServerClient client) {
-            UnityServerClient unityClient = ManageClientConnection(client);
-            packet.CopyTo( unityClient.packetClone );
-        }
-
-        private UnityServerClient ManageClientConnection(MyUDPServerClient client) {
-            UnityServerClient unityClient = Resolve(client);
-            UnityPacket unityPacket = (UnityPacket)packet;
-
-            if (unityClient.HasFlag(EClientStatus.SLEEPING)) {
+            if (unityClient.HasStatus(EClientStatus.SLEEPING)) {
                 unityClient.status &= ~EClientStatus.SLEEPING;
                 unityClient.status |= EClientStatus.WAKING;
 
                 if (OnClientWaking != null)
                     OnClientWaking(unityClient);
 
-            } else if (unityClient.HasFlag(EClientStatus.WAKING)) {
+            } else if (unityClient.HasStatus(EClientStatus.WAKING)) {
                 unityClient.status &= ~EClientStatus.WAKING;
 
                 if (OnClientReturned != null)
@@ -110,45 +86,43 @@ namespace MyUDP.UnityPreset {
             }
 
             //Alright, set the client's status and time-received stamp:
-            double timeNow = timeSinceStart;
+            double timeNow = GetTimeSinceStart();
             unityClient.timeDiff = timeNow - unityClient.timeLastReceived;
             unityClient.timeLastReceived = timeNow;
             unityClient.status |= EClientStatus.CONNECTED;
-
-            return unityClient;
         }
 
         private void OnUnityCheckClientsAlive(Gear obj) {
             
-            double timeNow = timeSinceStart;
+            double timeNow = GetTimeSinceStart();
 
             trace("Checking Alive..." + clientsUnity.Count);
             Log.BufferClear();
 
             //List<UnityServerClient> clients = clientsUnity.Values;
 
-            int iterator = 0;
-            foreach (UnityServerClient unityClient in clientsUnity.Values) {
+            int formatIterator = 0;
+            foreach (UnityClient unityClient in clientsUnity.Values) {
                 double diffNow = timeNow - unityClient.timeLastReceived;
                 double diffSeconds = diffNow * 0.001f;
                 double diffFromForget = timeForForget - diffSeconds;
                 int diffInt = (int)(diffFromForget);
                 int restInt = (int)(timeForForget - diffInt);
 
-                string cliStr = unityClient.clientID.ToString();
-                Log.BufferString(unityClient.clientID + ": " + "#".Times(diffInt) + " ".Times(restInt) + " ".Times(3 - cliStr.Length));
+                string cliStr = unityClient.id.ToString();
+                Log.BufferString(unityClient.id + ": " + "#".Times(diffInt) + " ".Times(restInt) + " ".Times(3 - cliStr.Length));
 
-                iterator++;
-                if((iterator%4)==0) Log.BufferString("\n");
+                formatIterator++;
+                if((formatIterator%4)==0) Log.BufferString("\n");
 
-                if (!unityClient.HasFlag(EClientStatus.SLEEPING)) {
+                if (!unityClient.HasStatus(EClientStatus.SLEEPING)) {
                     if (diffSeconds > timeForSleep) {
                         unityClient.status |= EClientStatus.SLEEPING;
+                        if(OnClientSleeping!=null) OnClientSleeping(unityClient);
                     }
-                } else if(!unityClient.HasFlag(EClientStatus.DISCONNECTED)) {
+                } else if(!unityClient.HasStatus(EClientStatus.DISCONNECTED)) {
                     if(diffSeconds > timeForForget) {
                         unityClient.status |= EClientStatus.DISCONNECTED;
-                        
                         if (clientsToForget.Contains(unityClient)) {
                             throw new Exception("OnUnityCheckClientsAlive ERROR - clientsToForget already has this client: " + unityClient.ToString());
                         }
@@ -159,40 +133,14 @@ namespace MyUDP.UnityPreset {
 
             //If there are any clients to forget, clear them out of the client-lists (Unity-based AND internal one):
             if(clientsToForget.Count>0) {
-                foreach (UnityServerClient unityClient in clientsToForget) {
+                foreach (UnityClient unityClient in clientsToForget) {
                     clientsUnity.Remove(unityClient.client);
+                    if(OnClientDisconnected!=null) OnClientDisconnected(unityClient);
                     ForgetClient(unityClient.client.endpointIn);
                 }
 
                 clientsToForget.Clear();
             }
         }
-    }
-
-    class UnityServerClient {
-        private static int CLIENT_ID = 1;
-        public EClientStatus status = EClientStatus.NEW;
-        public MyUDPServerClient client;
-        public uint lastACK = 0;
-        public double timeLastReceived = 0;
-        public double timeDiff = 0;
-        public int clientID;
-        public UnityPacket packetClone;
-        
-        public UnityServerClient(MyUDPServerClient client) {
-            this.client = client;
-            clientID = CLIENT_ID++;
-            packetClone = new UnityPacket();
-        }
-
-        public bool HasFlag(EClientStatus flag) {
-            return (status & flag) != 0;
-        }
-
-        public override string ToString() {
-            return client.endpointIn.ToString();
-        }
-
-        public UnityPacket packet { get { return (UnityPacket)client.packet; } }
     }
 }

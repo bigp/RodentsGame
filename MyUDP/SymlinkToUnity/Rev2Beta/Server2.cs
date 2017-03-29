@@ -15,7 +15,9 @@ namespace MyUDP.Rev2Beta {
         private Object thisLock = new Object();
 
         private bool _listening = false;
+
         private ClientList _clientList;
+        public ClientList clientList { get { return _clientList; } }
 
         private EndPoint _reusedEndpoint;
 
@@ -24,9 +26,11 @@ namespace MyUDP.Rev2Beta {
         public Socket socket { get { return this._socket; } }
 
         public Action<Client2> OnNewClient;
-        public Action<PacketStream2> OnPacketDecoded;
-        public Action<PacketStream2> OnPacketEncoded;
-        //public Action<Client2> OnDataReceived;
+        public Func<EndPoint, bool> OnValidateEndpoint;
+        public Func<Client2, bool> OnValidateClient;
+        //public Action<PacketStream2> OnPacketDecoded;
+        //public Action<PacketStream2> OnPacketEncoded;
+        public Action<Client2> OnDataReceived;
 
         public Server2(int port = -1,
                         int dataStreamSize = -1,
@@ -85,7 +89,7 @@ namespace MyUDP.Rev2Beta {
                     if(client!=null) {
                         client.messageQueueIn.AddBytes(_receivedBytes);
 
-                        //if (OnDataReceived != null) OnDataReceived(client);
+                        if (OnDataReceived != null) OnDataReceived(client);
 
                         //try {
                         //    packet.Decode(_byteStream); // Initialise a packet object to store the received data
@@ -107,6 +111,7 @@ namespace MyUDP.Rev2Beta {
             // Receive all data & assigns the IPEndPoint of the incoming client:
             int byteCount = socket.EndReceiveFrom(asyncResult, ref _reusedEndpoint);
             if(byteCount==0) return null;
+            if(OnValidateEndpoint!=null && !OnValidateEndpoint(_reusedEndpoint)) return null;
 
             Client2 client;
 
@@ -123,7 +128,13 @@ namespace MyUDP.Rev2Beta {
                 client = _clientList[_reusedEndpoint];
             }
 
+            if(OnValidateClient!=null && !OnValidateClient(client)) return null;
+
             return client;
+        }
+
+        internal void ForgetClient(IPEndPoint endpointIn) {
+            clientList.Remove(endpointIn);
         }
     }
 }

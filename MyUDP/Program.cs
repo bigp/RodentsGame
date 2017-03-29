@@ -53,15 +53,16 @@ namespace MyUDP {
         ////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////
 
-        static Server2 server;
-        static Client2 client;
+        static UnityServer server;
+        static UnityClient client;
 
         private static void MainServer() {
-            server = new Server2();
+            server = new UnityServer();
         }
 
         private static void MainClient() {
-            client = new Client2();
+            Client2 coreClient = new Client2();
+            client = new UnityClient(coreClient);
         }
 
         //static UnityServer server;

@@ -32,6 +32,9 @@ namespace MyUDP.Rev2Beta {
         private string _host;
         public string host { get { return this._host; } }
 
+        public Action<PacketStream2> OnPacketPreSend;
+        //public Action<PacketStream2> OnPacketPreSend;
+
         ///////////////////////////////////////////////////////////////////////////////
 
         public Client2(int port = -1, int dataStreamSize = -1) : base(port) {
@@ -115,6 +118,20 @@ namespace MyUDP.Rev2Beta {
             }
 
             __Listen();
+        }
+
+        public void Send(PacketStream2 stream=null) {
+            if(stream==null) stream = this.packetStream;
+
+            try {
+                //_packet.Encode(_byteStream);
+                if (OnPacketPreSend != null) OnPacketPreSend(stream);
+
+                byte[] bytes = stream.byteStream;
+                _socket.Send(bytes, stream.byteLength, _endpointOut);
+            } catch (Exception ex) {
+                traceError("Send error: " + ex.ToString());
+            }
         }
     }
 
