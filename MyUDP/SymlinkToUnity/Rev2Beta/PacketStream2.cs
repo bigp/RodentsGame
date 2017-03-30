@@ -9,10 +9,10 @@ namespace MyUDP.Rev2Beta {
 
         private int _byteLength = 0;
         private byte[] _byteStream;
-        private List<byte> _bytesList;
+        //private List<byte> _bytesList;
 
         public PacketStream2(int size = -1) {
-            _bytesList = new List<byte>();
+            //_bytesList = new List<byte>();
             _byteStream = new byte[size > 0 ? size : MyDefaults.DATA_STREAM_SIZE];
         }
 
@@ -21,7 +21,7 @@ namespace MyUDP.Rev2Beta {
 
         public void ResetByteIndex() {
             _byteLength = 0;
-            _bytesList.Clear();
+            //_bytesList.Clear();
         }
 
         ///////////////////////////////////////////////////////// UTILITY METHODS (Read / Write bytes, tracks index)
@@ -74,7 +74,8 @@ namespace MyUDP.Rev2Beta {
 
         public void WriteDoubles(params double[] values) {
             foreach (double value in values) {
-                _bytesList.AddRange(BitConverter.GetBytes(value));
+                BitConverter.GetBytes(value).CopyTo(_byteStream, _byteLength);
+                //_bytesList.AddRange(BitConverter.GetBytes(value));
                 _byteLength += 8;
             }
         }
@@ -84,41 +85,47 @@ namespace MyUDP.Rev2Beta {
         //}
 
         public void WriteBytes(params byte[] bytes) {
-            _bytesList.AddRange(bytes);
+            //_bytesList.AddRange(bytes);
+            bytes.CopyTo(_byteStream, _byteLength);
             _byteLength += bytes.Length;
         }
 
         public void WriteInts(params int[] values) {
             foreach (int value in values) {
-                _bytesList.AddRange(BitConverter.GetBytes(value));
+                //_bytesList.AddRange();
+                BitConverter.GetBytes(value).CopyTo(_byteStream, _byteLength);
                 _byteLength += 4;
             }
         }
 
         public void WriteUInts(params uint[] values) {
             foreach (uint value in values) {
-                _bytesList.AddRange(BitConverter.GetBytes(value));
+                BitConverter.GetBytes(value).CopyTo(_byteStream, _byteLength);
+                //_bytesList.AddRange(BitConverter.GetBytes(value));
                 _byteLength += 4;
             }
         }
 
         public void WriteLong(params long[] values) {
             foreach (long value in values) {
-                _bytesList.AddRange(BitConverter.GetBytes(value));
+                BitConverter.GetBytes(value).CopyTo(_byteStream, _byteLength);
+                //_bytesList.AddRange(BitConverter.GetBytes(value));
                 _byteLength += 8;
             }
         }
 
         public void WriteULongs(params ulong[] values) {
             foreach (ulong value in values) {
-                _bytesList.AddRange(BitConverter.GetBytes(value));
+                BitConverter.GetBytes(value).CopyTo(_byteStream, _byteLength);
+                //_bytesList.AddRange(BitConverter.GetBytes(value));
                 _byteLength += 8;
             }
         }
 
         public void WriteShorts(params short[] values) {
             foreach (short value in values) {
-                _bytesList.AddRange(BitConverter.GetBytes(value));
+                BitConverter.GetBytes(value).CopyTo(_byteStream, _byteLength);
+                //_bytesList.AddRange(BitConverter.GetBytes(value));
                 _byteLength += 2;
             }
         }
@@ -128,7 +135,8 @@ namespace MyUDP.Rev2Beta {
                 WriteInts(string.IsNullOrEmpty(value) ? 0 : value.Length);
                 if (value == null) continue;
                 byte[] strBytes = UTF8.GetBytes(value);
-                _bytesList.AddRange(strBytes);
+                strBytes.CopyTo(_byteStream, _byteLength);
+                //_bytesList.AddRange(strBytes);
                 _byteLength += strBytes.Length;
             }
         }

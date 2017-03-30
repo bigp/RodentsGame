@@ -21,6 +21,8 @@ namespace MyUDP.Clock {
         private Timer _internalTimer;
         private DateTime _lastDateTime;
 
+        public bool isClearOnInternalClock = true;
+
         public Clockwork() : base() {
             _timeMode = EGearTimeMode.TIME_BASED;
             name = "*MASTER*";
@@ -56,8 +58,10 @@ namespace MyUDP.Clock {
                 TimeSpan diffTime = nowDatetime - _lastDateTime;
                 float seconds = (float) diffTime.TotalSeconds;
 
-                Log.traceClear();
-                Log.trace(seconds);
+                if (isClearOnInternalClock) {
+                    Log.traceClear();
+                    Log.trace(seconds);
+                }
 
                 this.UpdateTime(seconds, 1);
 

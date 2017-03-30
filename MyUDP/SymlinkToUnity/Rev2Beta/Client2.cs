@@ -33,6 +33,7 @@ namespace MyUDP.Rev2Beta {
         public string host { get { return this._host; } }
 
         public Action<PacketStream2> OnPacketPreSend;
+        public Func<byte[], bool> OnClientValidatedBytes;
         //public Action<PacketStream2> OnPacketPreSend;
 
         ///////////////////////////////////////////////////////////////////////////////
@@ -40,8 +41,10 @@ namespace MyUDP.Rev2Beta {
         public Client2(int port = -1, int dataStreamSize = -1) : base(port) {
             if (dataStreamSize < 0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
 
+            _endpointIn = new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
             _packetStream = new PacketStream2(dataStreamSize);
             _messageQueueIn = new MessageQueue2();
+            _messageQueueOut = new MessageQueue2();
         }
 
         public virtual void Close() {
@@ -83,6 +86,9 @@ namespace MyUDP.Rev2Beta {
             try {
                 Close();
                 _socket = new UdpClient(port);
+
+                trace("Client side endpoint OUT: " + _endpointOut);
+                trace("Client side endpoint IN: " + _endpointIn);
             } catch (Exception ex) {
                 if (ex.Message.Contains("Only one usage")) {
                     //If it's a blocked port, try the next one:
@@ -98,6 +104,7 @@ namespace MyUDP.Rev2Beta {
         }
 
         private void __Listen(AsyncCallback callback = null) {
+            trace("Listening on: " + _endpointIn);
             _socket.BeginReceive(__Received, _endpointIn);
         }
 
@@ -105,33 +112,39 @@ namespace MyUDP.Rev2Beta {
             try {
                 byte[] bytesReceived = _socket.EndReceive(asyncResult, ref _endpointIn);
 
-                _messageQueueIn.AddBytes(bytesReceived);
-
-                //_packet.Decode(bytesReceived);
-                //if (OnPacketReceived != null) OnPacketReceived(_packet);
-
+                if (bytesReceived.Length>0) {
+                    if(OnClientValidatedBytes == null || OnClientValidatedBytes(bytesReceived)) {
+                        _messageQueueIn.AddBytes(bytesReceived);
+                        trace("Adding some bytes! " + bytesReceived.ToHex());
+                    }
+                }
             } catch (Exception ex) {
                 traceError("OnDataReceived error: " + ex.Message);
-                //if (ex.Message.Contains("forcibly")) {
-                //    //_isConnected = false;
-                //}
             }
 
             __Listen();
         }
 
         public void Send(PacketStream2 stream=null) {
+            if (_socket == null) {
+                trace("Cannot send yet, socket not ready!");
+                return;
+            }
+
             if(stream==null) stream = this.packetStream;
 
             try {
-                //_packet.Encode(_byteStream);
                 if (OnPacketPreSend != null) OnPacketPreSend(stream);
-
-                byte[] bytes = stream.byteStream;
-                _socket.Send(bytes, stream.byteLength, _endpointOut);
+                
+                trace("Sending packet to: " + _endpointOut);
+                _socket.BeginSend(stream.byteStream, stream.byteLength, _endpointOut, __OnSendComplete, this);
             } catch (Exception ex) {
                 traceError("Send error: " + ex.ToString());
             }
+        }
+
+        private void __OnSendComplete(IAsyncResult ar) {
+            _socket.EndSend(ar);
         }
     }
 

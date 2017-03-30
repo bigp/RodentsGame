@@ -32,7 +32,7 @@ namespace MyUDP.UnityPreset {
             return timeDiff.TotalMilliseconds;
         }
 
-        public UnityServer(float clockRatePerSecond=10f, int port = -1, int dataStreamSize = -1, bool autoListens = true)
+        public UnityServer(float ticksPerSecond=10f, int port = -1, int dataStreamSize = -1, bool autoListens = true)
                 : base(port, dataStreamSize, autoListens) {
 
             clientsUnity = new UnityClients();
@@ -45,8 +45,9 @@ namespace MyUDP.UnityPreset {
             this.OnDataReceived += OnClientReceivedData;
 
             //Set the "ticker" for sending messages back at given intervals:
-            clockTicker = new Clockwork().StartAutoUpdate(clockRatePerSecond);
-            clockTicker.AddGear("Unity Housekeeping").AddListener(OnUnityCheckClientsAlive);
+            clockTicker = new Clockwork().StartAutoUpdate(ticksPerSecond);
+            clockTicker.AddListener(__ProcessClientMessages);
+            clockTicker.AddGear("Unity Housekeeping").AddListener(__OnCheckClientsAlive);
         }
 
         private UnityClient Resolve(Client2 client) {
@@ -92,17 +93,14 @@ namespace MyUDP.UnityPreset {
             unityClient.status |= EClientStatus.CONNECTED;
         }
 
-        private void OnUnityCheckClientsAlive(Gear obj) {
-            
-            double timeNow = GetTimeSinceStart();
-
-            trace("Checking Alive..." + clientsUnity.Count);
+        private void __OnCheckClientsAlive(Gear obj) {
             Log.BufferClear();
 
-            //List<UnityServerClient> clients = clientsUnity.Values;
+            int debugIndentCounter = 0;
+            double timeNow = GetTimeSinceStart();
 
-            int formatIterator = 0;
-            foreach (UnityClient unityClient in clientsUnity.Values) {
+            UnityClients.ValueCollection clients = clientsUnity.Values;
+            foreach (UnityClient unityClient in clients) {
                 double diffNow = timeNow - unityClient.timeLastReceived;
                 double diffSeconds = diffNow * 0.001f;
                 double diffFromForget = timeForForget - diffSeconds;
@@ -112,8 +110,8 @@ namespace MyUDP.UnityPreset {
                 string cliStr = unityClient.id.ToString();
                 Log.BufferString(unityClient.id + ": " + "#".Times(diffInt) + " ".Times(restInt) + " ".Times(3 - cliStr.Length));
 
-                formatIterator++;
-                if((formatIterator%4)==0) Log.BufferString("\n");
+                debugIndentCounter++;
+                if((debugIndentCounter%4)==0) Log.BufferString("\n");
 
                 if (!unityClient.HasStatus(EClientStatus.SLEEPING)) {
                     if (diffSeconds > timeForSleep) {
@@ -141,6 +139,39 @@ namespace MyUDP.UnityPreset {
 
                 clientsToForget.Clear();
             }
+        }
+
+        private void __ProcessClientMessages(Gear obj) {
+            UnityClients.ValueCollection clients = clientsUnity.Values;
+
+            foreach (UnityClient unityClient in clients) {
+                Client2 client = unityClient.client;
+
+                if (client.messageQueueIn.hasMessages) {
+                    ProcessIncomingMessages(unityClient, client.messageQueueIn);
+                }
+            }
+
+            foreach (UnityClient unityClient in clients) {
+                Client2 client = unityClient.client;
+
+                if (client.messageQueueOut.hasMessages) {
+                    ProcessOutgoingMessages(unityClient, client.messageQueueOut);
+                }
+            }
+        }
+
+        private void ProcessIncomingMessages(UnityClient unityClient, MessageQueue2 queue) {
+            trace("Client Messages-IN: " + queue.messages.Count);
+        }
+
+        private void ProcessOutgoingMessages(UnityClient unityClient, MessageQueue2 queue) {
+            trace("Client Messages-OUT: " + queue.messages.Count);
+
+            /*
+             * OK so when sending, its probably better to have each Server-side clients send through their individual sockets.
+             * This way it avoids blocking (maybe) the threads / process when needing to simultaneously send data.
+             */
         }
     }
 }

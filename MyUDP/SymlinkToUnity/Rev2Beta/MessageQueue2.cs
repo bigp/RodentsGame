@@ -57,12 +57,10 @@ namespace MyUDP.Rev2Beta {
         public static int DEFAULT_COUNT = 512;
         public static int DEFAULT_BYTES_LENGHT = -1;
 
-        private int dataStreamLength;
-
         public PoolOfBytes() : base(DEFAULT_COUNT) {
             int bytesLength = DEFAULT_BYTES_LENGHT <= 0 ? MyDefaults.DATA_STREAM_SIZE : DEFAULT_BYTES_LENGHT;
             for (int i = 0; i < DEFAULT_COUNT; i++) {
-                this[i] = new byte[bytesLength];
+                this.Add( new byte[bytesLength] );
             }
         }
 

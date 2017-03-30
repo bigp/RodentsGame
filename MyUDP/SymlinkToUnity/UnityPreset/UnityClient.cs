@@ -34,7 +34,7 @@ namespace MyUDP.UnityPreset {
 
         ////////////////////////////////////////////////////////////////////////////////////
 
-        public UnityClient(Client2 client=null, float clockRatePerSecond = 10f) {
+        public UnityClient(Client2 client=null, float clockRatePerSecond = 2f) {
             this.client = client;
             this.status = EClientStatus.NEW;
             this.id = ID_COUNTER++;
@@ -45,7 +45,7 @@ namespace MyUDP.UnityPreset {
             clockTicker = new Clockwork().StartAutoUpdate(clockRatePerSecond);
             clockTicker.AddGear().AddListener(__ProcessMessage).SetParams(timeMode: EGearTimeMode.FRAME_BASED);
 
-            clockTicker.AddGear("HeartBeat").AddListener(__HeartBeat).SetParams(timeMode:EGearTimeMode.FRAME_BASED);
+            clockTicker.AddGear("HeartBeat").AddListener(__HeartBeat).SetParams(counterReset: 1, timeMode:EGearTimeMode.TIME_BASED);
             //clockTicker.AddInterleaving(OnSendPosition, OnSendRotation);
         }
 
@@ -57,20 +57,23 @@ namespace MyUDP.UnityPreset {
         ////////////////////////////////////////////////////////////////////////////////////
 
         private void __HeartBeat(Gear obj) {
+            PacketStream2 stream = client.packetStream;
+            stream.ResetByteIndex();
+            stream.WriteBytes(0x02);
             client.Send();
         }
 
         private void __ProcessMessage(Gear obj) {
-            ProcessMessagesIn();
-            ProcessMessagesOut();
+            if(client.messageQueueIn.hasMessages) ProcessMessagesIn(client.messageQueueIn);
+            if (client.messageQueueOut.hasMessages) ProcessMessagesOut(client.messageQueueOut);
         }
 
-        private void ProcessMessagesOut() {
-            throw new NotImplementedException();
+        private void ProcessMessagesOut(MessageQueue2 queue) {
+            Log.trace("Client Processing OUT: " + queue.messages.Count);
         }
 
-        private void ProcessMessagesIn() {
-            throw new NotImplementedException();
+        private void ProcessMessagesIn(MessageQueue2 queue) {
+            Log.trace("Client Processing IN: " + queue.messages.Count);
         }
     }
 }

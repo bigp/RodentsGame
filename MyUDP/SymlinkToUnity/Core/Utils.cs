@@ -23,6 +23,10 @@ namespace MyUDP {
             }
             return output;
         }
+
+        public static string ToHex(this byte[] bytes) {
+            return BitConverter.ToString(bytes).Replace("-", string.Empty);
+        }
     }
 
 	public static class Utils {
