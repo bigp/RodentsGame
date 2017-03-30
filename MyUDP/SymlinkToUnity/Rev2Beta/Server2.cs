@@ -37,14 +37,17 @@ namespace MyUDP.Rev2Beta {
                         bool autoListens = true)
                         : base() {
             if(dataStreamSize<=0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
+            if(port<0) port = MyDefaults.SERVER_PORT;
 
+            _port = port;
             _reusedEndpoint = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
             _clientList = new ClientList();
             _receivedBytes = new byte[dataStreamSize];
 
             try {
                 _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                _socket.Bind( _endpointIn );
+                _socket.Bind( new IPEndPoint(IPAddress.Any, _port) );
+                trace("Server socket port: " + this._port);
 
                 if (autoListens) BeginListen();
             } catch(Exception ex) {
@@ -60,12 +63,14 @@ namespace MyUDP.Rev2Beta {
         public void BeginListen() {
             if(_listening) return;
 
+            _listening = true;
             __Listen();
         }
         
         private void __Listen() {
             EndPoint ep = (EndPoint)_endpointIn;
 
+            trace("Listening... " + _endpointIn);
             // Start listening for incoming data
             byte[] bytes = _receivedBytes;
 
@@ -86,6 +91,7 @@ namespace MyUDP.Rev2Beta {
                 try {
                     Client2 client = GetClient(asyncResult);
 
+                    trace("client: " + client);
                     if(client!=null) {
                         client.messageQueueIn.AddBytes(_receivedBytes);
 

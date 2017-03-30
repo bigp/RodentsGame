@@ -34,9 +34,9 @@ namespace MyUDP {
             };
 
             Log.trace("MyUDP Menu: If you want to run the server, type 's'.");
-            Log.trace("            Otherwise, let the timer run out: (3 seconds).");
+            Log.trace("            Otherwise, let the timer run out.");
 
-            ConsoleKeyInfo keyInfo = ReadKey(2000);
+            ConsoleKeyInfo keyInfo = ReadKey(3000);
 
             Log.traceClear();
 
@@ -64,7 +64,7 @@ namespace MyUDP {
             Client2 coreClient = new Client2();
             coreClient.SetAsClientSide("127.0.0.1");
 
-            client = new UnityClient(coreClient, 0.5f);
+            client = new UnityClient(coreClient, 1f);
             client.clockTicker.isClearOnInternalClock = false;
         }
 

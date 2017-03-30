@@ -6,6 +6,7 @@ using System.Net;
 
 namespace MyUDP.Rev2Beta {
     public class Core2 {
+        private static object thisLock = new object();
         internal int _port;
         public int port { get { return this._port; } }
 
@@ -18,19 +19,23 @@ namespace MyUDP.Rev2Beta {
 
 #if JUST_CONSOLE
         public static void trace(object obj, params object[] args) {
-            ConsoleColor before = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("[MyUDP] ");
-            Console.ForegroundColor = before;
-            Log.trace(obj.ToString(), args);
+            lock(thisLock) {
+                ConsoleColor before = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write("[MyUDP] ");
+                Console.ForegroundColor = before;
+                Log.trace(obj.ToString(), args);
+            }
         }
 
         public static void traceError(object obj, params object[] args) {
-            ConsoleColor before = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("[MyUDP] ");
-            Console.ForegroundColor = before;
-            Log.traceError(obj.ToString(), args);
+            lock(thisLock) {
+                ConsoleColor before = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write("[MyUDP] ");
+                Console.ForegroundColor = before;
+                Log.traceError(obj.ToString(), args);
+            }
         }
 #else
 		public static void trace(object obj, params object[] args) {

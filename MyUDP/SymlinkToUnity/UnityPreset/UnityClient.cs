@@ -57,6 +57,9 @@ namespace MyUDP.UnityPreset {
         ////////////////////////////////////////////////////////////////////////////////////
 
         private void __HeartBeat(Gear obj) {
+            Log.traceClear();
+            Log.trace(Utils.GetTime());
+
             PacketStream2 stream = client.packetStream;
             stream.ResetByteIndex();
             stream.WriteBytes(0x01);

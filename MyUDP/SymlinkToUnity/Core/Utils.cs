@@ -108,6 +108,7 @@ namespace MyUDP {
         }
 
         public static void BufferOutput() {
+            if(string.IsNullOrEmpty(_current)) return;
             trace(_current);
         }
 #else

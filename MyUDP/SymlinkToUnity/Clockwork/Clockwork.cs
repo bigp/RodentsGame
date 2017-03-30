@@ -21,7 +21,7 @@ namespace MyUDP.Clock {
         private Timer _internalTimer;
         private DateTime _lastDateTime;
 
-        public bool isClearOnInternalClock = true;
+        public bool isClearOnInternalClock = false;
 
         public Clockwork() : base() {
             _timeMode = EGearTimeMode.TIME_BASED;
@@ -60,7 +60,6 @@ namespace MyUDP.Clock {
 
                 if (isClearOnInternalClock) {
                     Log.traceClear();
-                    Log.trace(seconds);
                 }
 
                 this.UpdateTime(seconds, 1);

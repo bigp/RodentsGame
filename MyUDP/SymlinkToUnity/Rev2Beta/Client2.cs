@@ -54,12 +54,12 @@ namespace MyUDP.Rev2Beta {
         ///////////////////////////////////////////////////////////////////////////////
 
         public void SetAsServerSide(Server2 server2, int port = -1) {
-            _port = port < 0 ? MyDefaults.CLIENT_PORT : port;
+            _port = port < 0 ? MyDefaults.SERVER_PORT : port;
             _server2 = server2;
         }
 
         public void SetAsClientSide(string hostname = "127.0.0.1", int port = -1, bool autoConnect=true) {
-            _port = port < 0 ? MyDefaults.CLIENT_PORT : port;
+            _port = port < 0 ? MyDefaults.SERVER_PORT : port;
             _host = hostname;
 
             IPAddress ipAddr;
@@ -85,7 +85,8 @@ namespace MyUDP.Rev2Beta {
             if (port < 0) port = this._port;
 
             try {
-                _socket = new UdpClient(port);
+                _socket = new UdpClient(); //port
+                _socket.Connect(_endpointOut);
 
             } catch (Exception ex) {
                 traceError("Connect failed: " + ex.Message);
@@ -103,18 +104,22 @@ namespace MyUDP.Rev2Beta {
         }
 
         private void __Listen(AsyncCallback callback = null) {
-            _socket.BeginReceive(__Received, _endpointIn);
+            try {
+                _socket.BeginReceive(__Received, _endpointIn);
+            } catch(Exception ex) {
+                traceError("__Listen ERROR: " + ex.Message);
+            }
         }
 
         private void __Received(IAsyncResult asyncResult) {
             try {
                 byte[] bytesReceived = _socket.EndReceive(asyncResult, ref _endpointIn);
 
-                trace(" <<<< RECEIVED: " + _endpointIn);
+                trace(_endpointIn + " <<<< RECEIVED");
 
                 if (bytesReceived.Length>0) {
                     if(OnClientValidatedBytes == null || OnClientValidatedBytes(bytesReceived)) {
-                        _messageQueueIn.AddBytes(bytesReceived);
+                        //_messageQueueIn.AddBytes(bytesReceived);
                         trace("Adding some bytes! " + bytesReceived.ToHex());
                     }
                 }
@@ -136,9 +141,9 @@ namespace MyUDP.Rev2Beta {
             try {
                 if (OnPacketPreSend != null) OnPacketPreSend(stream);
                 
-                trace(" >>>>>>>> SENDING: " + _endpointOut);
+                trace(_endpointOut + "        >>>>>>>> SENDING");
                 //_socket.BeginSend(stream.byteStream, stream.byteLength, _endpointOut, __OnSendComplete, this);
-                _socket.Send(stream.byteStream, stream.byteLength, _endpointOut); //_endpointOut
+                _socket.BeginSend(stream.byteStream, stream.byteLength, __OnSendComplete, _endpointOut); //_endpointOut
             } catch (Exception ex) {
                 traceError("Send error: " + ex.ToString());
             }
@@ -146,6 +151,7 @@ namespace MyUDP.Rev2Beta {
 
         private void __OnSendComplete(IAsyncResult ar) {
             _socket.EndSend(ar);
+            trace("Done sending...");
         }
     }
 

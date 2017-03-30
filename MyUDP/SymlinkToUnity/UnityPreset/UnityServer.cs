@@ -94,6 +94,8 @@ namespace MyUDP.UnityPreset {
         }
 
         private void __OnCheckClientsAlive(Gear obj) {
+            return;
+
             Log.BufferClear();
 
             int debugIndentCounter = 0;
