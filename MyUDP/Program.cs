@@ -12,7 +12,8 @@ namespace MyUDP {
         static ConsoleKeyInfo ReadKey(int timeoutms, char defaultChar=' ', ConsoleKey defaultKey=ConsoleKey.Spacebar) {
             ReadKeyInfo d = Console.ReadKey;
             IAsyncResult result = d.BeginInvoke(null, null);
-            result.AsyncWaitHandle.WaitOne(timeoutms);//timeout e.g. 15000 for 15 secs
+            result.AsyncWaitHandle.WaitOne(timeoutms);
+
             if (result.IsCompleted) {
                 ConsoleKeyInfo keyInfo = d.EndInvoke(result);
                 Console.WriteLine("Key: " + keyInfo);
@@ -61,8 +62,8 @@ namespace MyUDP {
         }
 
         private static void MainClient() {
-            Client2 coreClient = new Client2();
-            coreClient.SetAsClientSide("127.0.0.1");
+            Client2 coreClient = new Client2("127.0.0.1");
+            coreClient.SetAsClientSide();
 
             client = new UnityClient(coreClient, 1f);
             client.clockTicker.isClearOnInternalClock = false;

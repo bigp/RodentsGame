@@ -38,9 +38,10 @@ namespace MyUDP.Rev2Beta {
 
         ///////////////////////////////////////////////////////////////////////////////
 
-        public Client2(int dataStreamSize = -1) : base() {
+        public Client2(string hostname = "127.0.0.1", int port = -1, int dataStreamSize = -1) : base(port) {
             if (dataStreamSize < 0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
-            
+
+            _host = hostname;
             _packetStream = new PacketStream2(dataStreamSize);
             _messageQueueIn = new MessageQueue2();
             _messageQueueOut = new MessageQueue2();
@@ -58,10 +59,7 @@ namespace MyUDP.Rev2Beta {
             _server2 = server2;
         }
 
-        public void SetAsClientSide(string hostname = "127.0.0.1", int port = -1, bool autoConnect=true) {
-            _port = port < 0 ? MyDefaults.SERVER_PORT : port;
-            _host = hostname;
-
+        public void SetAsClientSide(bool autoConnect=true) {
             IPAddress ipAddr;
 
             if (!IPAddress.TryParse(_host, out ipAddr)) {

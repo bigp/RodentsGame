@@ -35,11 +35,10 @@ namespace MyUDP.Rev2Beta {
         public Server2(int port = -1,
                         int dataStreamSize = -1,
                         bool autoListens = true)
-                        : base() {
-            if(dataStreamSize<=0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
-            if(port<0) port = MyDefaults.SERVER_PORT;
+                        : base(port) {
 
-            _port = port;
+            if(dataStreamSize<=0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
+            
             _reusedEndpoint = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
             _clientList = new ClientList();
             _receivedBytes = new byte[dataStreamSize];
@@ -70,7 +69,6 @@ namespace MyUDP.Rev2Beta {
         private void __Listen() {
             EndPoint ep = (EndPoint)_endpointIn;
 
-            trace("Listening... " + _endpointIn);
             // Start listening for incoming data
             byte[] bytes = _receivedBytes;
 
@@ -91,7 +89,7 @@ namespace MyUDP.Rev2Beta {
                 try {
                     Client2 client = GetClient(asyncResult);
 
-                    trace("client: " + client);
+                    Log.BufferLine("client: " + client);
                     if(client!=null) {
                         client.messageQueueIn.AddBytes(_receivedBytes);
 
@@ -123,7 +121,7 @@ namespace MyUDP.Rev2Beta {
             Client2 client;
 
             if (!_clientList.ContainsKey(_reusedEndpoint)) {
-                client = new Client2(); //this
+                client = new Client2();
                 client._endpointIn = (IPEndPoint)_reusedEndpoint;
                 client.SetAsServerSide(this);
 
@@ -134,6 +132,8 @@ namespace MyUDP.Rev2Beta {
             } else {
                 client = _clientList[_reusedEndpoint];
             }
+
+            Log.BufferLine(client._endpointIn);
 
             if(OnValidateClient!=null && !OnValidateClient(client)) return null;
 
