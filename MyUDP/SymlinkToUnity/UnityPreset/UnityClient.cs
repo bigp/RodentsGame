@@ -59,12 +59,12 @@ namespace MyUDP.UnityPreset {
         private void __HeartBeat(Gear obj) {
             PacketStream2 stream = client.packetStream;
             stream.ResetByteIndex();
-            stream.WriteBytes(0x02);
+            stream.WriteBytes(0x01);
             client.Send();
         }
 
         private void __ProcessMessage(Gear obj) {
-            if(client.messageQueueIn.hasMessages) ProcessMessagesIn(client.messageQueueIn);
+            if (client.messageQueueIn.hasMessages) ProcessMessagesIn(client.messageQueueIn);
             if (client.messageQueueOut.hasMessages) ProcessMessagesOut(client.messageQueueOut);
         }
 

@@ -62,9 +62,9 @@ namespace MyUDP {
 
         private static void MainClient() {
             Client2 coreClient = new Client2();
-            coreClient.SetAsClientSide();
+            coreClient.SetAsClientSide("127.0.0.1");
 
-            client = new UnityClient(coreClient);
+            client = new UnityClient(coreClient, 0.5f);
             client.clockTicker.isClearOnInternalClock = false;
         }
 

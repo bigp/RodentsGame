@@ -38,10 +38,9 @@ namespace MyUDP.Rev2Beta {
 
         ///////////////////////////////////////////////////////////////////////////////
 
-        public Client2(int port = -1, int dataStreamSize = -1) : base(port) {
+        public Client2(int dataStreamSize = -1) : base() {
             if (dataStreamSize < 0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
-
-            _endpointIn = new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
+            
             _packetStream = new PacketStream2(dataStreamSize);
             _messageQueueIn = new MessageQueue2();
             _messageQueueOut = new MessageQueue2();
@@ -54,11 +53,13 @@ namespace MyUDP.Rev2Beta {
 
         ///////////////////////////////////////////////////////////////////////////////
 
-        public void SetAsServerSide(Server2 server2) {
+        public void SetAsServerSide(Server2 server2, int port = -1) {
+            _port = port < 0 ? MyDefaults.CLIENT_PORT : port;
             _server2 = server2;
         }
 
-        public void SetAsClientSide(string hostname = "127.0.0.1", bool autoConnect=true) {
+        public void SetAsClientSide(string hostname = "127.0.0.1", int port = -1, bool autoConnect=true) {
+            _port = port < 0 ? MyDefaults.CLIENT_PORT : port;
             _host = hostname;
 
             IPAddress ipAddr;
@@ -84,12 +85,10 @@ namespace MyUDP.Rev2Beta {
             if (port < 0) port = this._port;
 
             try {
-                Close();
                 _socket = new UdpClient(port);
 
-                trace("Client side endpoint OUT: " + _endpointOut);
-                trace("Client side endpoint IN: " + _endpointIn);
             } catch (Exception ex) {
+                traceError("Connect failed: " + ex.Message);
                 if (ex.Message.Contains("Only one usage")) {
                     //If it's a blocked port, try the next one:
                     Connect(port + 1);
@@ -104,13 +103,14 @@ namespace MyUDP.Rev2Beta {
         }
 
         private void __Listen(AsyncCallback callback = null) {
-            trace("Listening on: " + _endpointIn);
             _socket.BeginReceive(__Received, _endpointIn);
         }
 
         private void __Received(IAsyncResult asyncResult) {
             try {
                 byte[] bytesReceived = _socket.EndReceive(asyncResult, ref _endpointIn);
+
+                trace(" <<<< RECEIVED: " + _endpointIn);
 
                 if (bytesReceived.Length>0) {
                     if(OnClientValidatedBytes == null || OnClientValidatedBytes(bytesReceived)) {
@@ -119,7 +119,7 @@ namespace MyUDP.Rev2Beta {
                     }
                 }
             } catch (Exception ex) {
-                traceError("OnDataReceived error: " + ex.Message);
+                traceError("OnDataReceived error: " + _endpointIn + " : " + ex.Message);
             }
 
             __Listen();
@@ -136,8 +136,9 @@ namespace MyUDP.Rev2Beta {
             try {
                 if (OnPacketPreSend != null) OnPacketPreSend(stream);
                 
-                trace("Sending packet to: " + _endpointOut);
-                _socket.BeginSend(stream.byteStream, stream.byteLength, _endpointOut, __OnSendComplete, this);
+                trace(" >>>>>>>> SENDING: " + _endpointOut);
+                //_socket.BeginSend(stream.byteStream, stream.byteLength, _endpointOut, __OnSendComplete, this);
+                _socket.Send(stream.byteStream, stream.byteLength, _endpointOut); //_endpointOut
             } catch (Exception ex) {
                 traceError("Send error: " + ex.ToString());
             }

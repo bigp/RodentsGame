@@ -12,9 +12,7 @@ namespace MyUDP.Rev2Beta {
         internal IPEndPoint _endpointIn;
         public IPEndPoint endpointIn { get { return this._endpointIn; } }
         
-        public Core2(int port) {
-            _port = port < 0 ? MyDefaults.SERVER_PORT : port;
-
+        public Core2() {
             _endpointIn = new IPEndPoint(IPAddress.Any, 0);
         }
 

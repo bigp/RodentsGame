@@ -35,7 +35,7 @@ namespace MyUDP.Rev2Beta {
         public Server2(int port = -1,
                         int dataStreamSize = -1,
                         bool autoListens = true)
-                        : base(port) {
+                        : base() {
             if(dataStreamSize<=0) dataStreamSize = MyDefaults.DATA_STREAM_SIZE;
 
             _reusedEndpoint = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
@@ -89,6 +89,7 @@ namespace MyUDP.Rev2Beta {
                     if(client!=null) {
                         client.messageQueueIn.AddBytes(_receivedBytes);
 
+                        trace(client.endpointIn + " : " + client.endpointOut);
                         if (OnDataReceived != null) OnDataReceived(client);
 
                         //try {
