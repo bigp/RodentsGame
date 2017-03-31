@@ -25,6 +25,8 @@ namespace MyUDP.UnityPreset {
         public Action<UnityClient> OnClientWaking;
         public Action<UnityClient> OnClientReturned;
         public Action<UnityClient> OnClientDisconnected;
+
+        public PacketStream2 packetStreamTemp;
         
         public double GetTimeSinceStart() {
             DateTime timeNow = DateTime.Now;
@@ -37,6 +39,7 @@ namespace MyUDP.UnityPreset {
 
             clientsUnity = new UnityClients();
             clientsToForget = new List<UnityClient>();
+            packetStreamTemp = new PacketStream2();
 
             timeStarted = DateTime.Now;
 
@@ -71,6 +74,7 @@ namespace MyUDP.UnityPreset {
             UnityClient unityClient = Resolve(client);
             //UnityPacket unityPacket = (UnityPacket)packet;
 
+            trace(client.endpointIn + ": <<<<< RECEIVED: " + _receivedBytesLength);
             if (unityClient.HasStatus(EClientStatus.SLEEPING)) {
                 unityClient.status &= ~EClientStatus.SLEEPING;
                 unityClient.status |= EClientStatus.WAKING;
@@ -94,8 +98,6 @@ namespace MyUDP.UnityPreset {
         }
 
         private void __OnCheckClientsAlive(Gear obj) {
-            //Log.BufferClear();
-
             int debugIndentCounter = 0;
             double timeNow = GetTimeSinceStart();
 
@@ -148,7 +150,7 @@ namespace MyUDP.UnityPreset {
                 Client2 client = unityClient.client;
 
                 if (client.messageQueueIn.hasMessages) {
-                    ProcessIncomingMessages(unityClient, client.messageQueueIn);
+                    //ProcessIncomingMessages(unityClient, client.messageQueueIn);
                 }
             }
 
@@ -156,8 +158,15 @@ namespace MyUDP.UnityPreset {
                 Client2 client = unityClient.client;
 
                 if (client.messageQueueOut.hasMessages) {
-                    ProcessOutgoingMessages(unityClient, client.messageQueueOut);
+                    //ProcessOutgoingMessages(unityClient, client.messageQueueOut);
                 }
+
+                /////////////// TEST SENDING BACK SOME BYTES BACK TO CLIENTS!
+                packetStreamTemp.ResetByteIndex();
+                packetStreamTemp.WriteBytes(69);
+                trace(client._endpointIn + ":         >>>>>>> SENDING: " + packetStreamTemp.byteLength);
+
+                SendData(packetStreamTemp, client);
             }
         }
 
@@ -180,6 +189,7 @@ namespace MyUDP.UnityPreset {
 
             queue.RecycleMessages();
 
+            
             /*
              * OK so when sending, its probably better to have each Server-side clients send through their individual sockets.
              * This way it avoids blocking (maybe) the threads / process when needing to simultaneously send data.

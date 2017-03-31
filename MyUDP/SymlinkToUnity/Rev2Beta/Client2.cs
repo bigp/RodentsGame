@@ -119,8 +119,8 @@ namespace MyUDP.Rev2Beta {
 
                     if (bytesFromServer.Length > 0) {
                         if (OnClientValidatedBytes == null || OnClientValidatedBytes(bytesFromServer)) {
-                            //_messageQueueIn.AddBytes(bytesReceived);
-                            trace("Adding some bytes! " + bytesFromServer.ToHex());
+                            _messageQueueIn.AddBytes(bytesFromServer);
+                            //trace("Adding some bytes! " + bytesFromServer[0]); //.ToHex()
                         }
                     }
                 } catch (Exception ex) {
@@ -145,7 +145,6 @@ namespace MyUDP.Rev2Beta {
 
                     trace(_endpointOut + "        >>>>>>>> SENDING");
                     _socket.BeginSend(stream.byteStream, stream.byteLength, __OnSendComplete, _endpointOut);
-                    //_socket.Send(stream.byteStream, stream.byteLength, _endpointOut); //_endpointOut
                 } catch (Exception ex) {
                     traceError("Send error: " + ex.ToString());
                 }
@@ -154,7 +153,6 @@ namespace MyUDP.Rev2Beta {
 
         private void __OnSendComplete(IAsyncResult ar) {
             _socket.EndSend(ar);
-            trace("Done sending...");
         }
     }
 

@@ -21,8 +21,9 @@ namespace MyUDP.Rev2Beta {
 
         private EndPoint _reusedEndpoint;
 
-        private byte[] _receivedBytes;
-        private Socket _socket;
+        protected int _receivedBytesLength = 0;
+        protected byte[] _receivedBytes;
+        protected Socket _socket;
         public Socket socket { get { return this._socket; } }
 
         public Action<Client2> OnNewClient;
@@ -102,10 +103,43 @@ namespace MyUDP.Rev2Beta {
             }
         }
 
+        public void SendData(PacketStream2 stream, Client2 client) {
+            __SendData(stream, client);
+        }
+
+        public void SendAll(PacketStream2 stream, EndPoint endpointException = null) {
+            foreach (Client2 client in this._clientList.Values) {
+                bool isSelf = endpointException == null ? false : client._endpointIn == endpointException;
+                if (isSelf) continue;
+
+                __SendData(stream, client);
+            }
+        }
+
+        private void __SendData(PacketStream2 stream, Client2 client) {
+            _socket.BeginSendTo(
+                stream.byteStream, 0, stream.byteLength,
+                SocketFlags.None,
+                client._endpointIn,
+                __OnSendDataComplete,
+                client._endpointIn
+            );
+        }
+
+        private void __OnSendDataComplete(IAsyncResult asyncResult) {
+            lock (thisLock) {
+                try {
+                    socket.EndSend(asyncResult);
+                } catch (Exception ex) {
+                    trace("SendData Error: " + ex.Message);
+                }
+            }
+        }
+
         private Client2 GetClient(IAsyncResult asyncResult) {
             // Receive all data & assigns the IPEndPoint of the incoming client:
-            int byteCount = socket.EndReceiveFrom(asyncResult, ref _reusedEndpoint);
-            if(byteCount==0) return null;
+            _receivedBytesLength = socket.EndReceiveFrom(asyncResult, ref _reusedEndpoint);
+            if(_receivedBytesLength == 0) return null;
             if(OnValidateEndpoint!=null && !OnValidateEndpoint(_reusedEndpoint)) return null;
 
             Client2 client;
@@ -123,9 +157,7 @@ namespace MyUDP.Rev2Beta {
                 client = _clientList[_reusedEndpoint];
             }
 
-            Log.BufferLine(client._endpointIn);
-
-            if(OnValidateClient!=null && !OnValidateClient(client)) return null;
+            if (OnValidateClient!=null && !OnValidateClient(client)) return null;
 
             return client;
         }

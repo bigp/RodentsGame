@@ -71,12 +71,12 @@ namespace MyUDP.UnityPreset {
             if (client.messageQueueOut.hasMessages) ProcessMessagesOut(client.messageQueueOut);
         }
 
-        private void ProcessMessagesOut(MessageQueue2 queue) {
-            Log.trace("Client Processing OUT: " + queue.messages.Count);
-        }
-
         private void ProcessMessagesIn(MessageQueue2 queue) {
             Log.trace("Client Processing IN: " + queue.messages.Count);
+        }
+
+        private void ProcessMessagesOut(MessageQueue2 queue) {
+            Log.trace("Client Processing OUT: " + queue.messages.Count);
         }
     }
 }
