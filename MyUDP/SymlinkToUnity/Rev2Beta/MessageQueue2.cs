@@ -8,7 +8,7 @@ namespace MyUDP.Rev2Beta {
         private static bool _isInited = false;
         private static int _DEFAULT_MESSAGES_MAX = 16;
 
-        public static PoolOfBytes POOL_OF_BYTES;
+        public static PoolOfMessages POOL_OF_MESSAGES;
 
         public int messagesMax = -1;
 
@@ -19,7 +19,7 @@ namespace MyUDP.Rev2Beta {
 
         private static void InitClass() {
             _isInited = true;
-            POOL_OF_BYTES = new PoolOfBytes();
+            POOL_OF_MESSAGES = new PoolOfMessages();
         }
 
         public MessageQueue2() {
@@ -35,47 +35,56 @@ namespace MyUDP.Rev2Beta {
                 return;
             }
 
-            byte[] tempBytes = POOL_OF_BYTES.PopBytes();
-            bytes.CopyTo(tempBytes, 0);
-            _messages.Add(new Message2(Utils.GetTime(), tempBytes));
+            Message2 tempMsg = POOL_OF_MESSAGES.Pop();
+            bytes.CopyTo(tempMsg.bytes, 0);
+            tempMsg.timestamp = Utils.GetTime();
+            _messages.Add(tempMsg);
         }
 
-        public class Message2 {
-            public ulong timestamp = 0;
-            public byte[] bytes;
-
-            public Message2(ulong timestamp, byte[] bytes) {
-                this.timestamp = timestamp;
-                this.bytes = bytes;
+        internal void RecycleMessages() {
+            foreach(Message2 msg in _messages) {
+                POOL_OF_MESSAGES.Push(msg);
             }
+
+            _messages.Clear();
+        }
+    }
+
+    public class Message2 {
+        public ulong timestamp = 0;
+        public byte[] bytes;
+
+        public Message2(ulong timestamp, byte[] bytes) {
+            this.timestamp = timestamp;
+            this.bytes = bytes;
         }
     }
 
     ///////////////////////////////////////////////////////////////////////////////
 
-    public class PoolOfBytes :List<byte[]> {
+    public class PoolOfMessages :List<Message2> {
         public static int DEFAULT_COUNT = 512;
         public static int DEFAULT_BYTES_LENGHT = -1;
 
-        public PoolOfBytes() : base(DEFAULT_COUNT) {
+        public PoolOfMessages() : base(DEFAULT_COUNT) {
             int bytesLength = DEFAULT_BYTES_LENGHT <= 0 ? MyDefaults.DATA_STREAM_SIZE : DEFAULT_BYTES_LENGHT;
             for (int i = 0; i < DEFAULT_COUNT; i++) {
-                this.Add( new byte[bytesLength] );
+                this.Add( new Message2(0, new byte[bytesLength]) );
             }
         }
 
-        public byte[] PopBytes() {
+        public Message2 Pop() {
             if (this.Count <= 0) return null;
-            byte[] bytes = this[0];
+            Message2 msg = this[0];
             this.RemoveAt(0);
 
-            return bytes;
+            return msg;
         }
 
-        public void PushBytes(byte[] bytes) {
-            Array.Clear(bytes, 0, bytes.Length);
+        public void Push(Message2 msg) {
+            Array.Clear(msg.bytes, 0, msg.bytes.Length);
 
-            this.Add(bytes);
+            this.Add(msg);
         }
     }
 }
