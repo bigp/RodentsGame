@@ -89,23 +89,13 @@ namespace MyUDP.Rev2Beta {
                 try {
                     Client2 client = GetClient(asyncResult);
 
-                    Log.BufferLine("client: " + client);
                     if(client!=null) {
                         client.messageQueueIn.AddBytes(_receivedBytes);
-
-                        trace(client.endpointIn + " : " + client.endpointOut);
+                        
                         if (OnDataReceived != null) OnDataReceived(client);
-
-                        //try {
-                        //    packet.Decode(_byteStream); // Initialise a packet object to store the received data
-                        //    if (OnPacketDecoded != null) OnPacketDecoded(packet);
-                        //} catch (Exception e) {
-                        //    Log.trace("ReadResult Error - unable to DecodePacket data stream: \n" + e.StackTrace);
-                        //}
                     }
 
                     __Listen();
-
                 } catch (Exception ex) {
                     trace("ReceiveData Error: " + ex.Message);
                 }

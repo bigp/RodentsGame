@@ -10,6 +10,7 @@ namespace MyUDP.Rev2Beta {
     ///////////////////////////////////////////////////////////////////////////////
 
     public class Client2 : Core2 {
+        private static object thisLock = new object();
 
         private MessageQueue2 _messageQueueIn;
         public MessageQueue2 messageQueueIn { get { return this._messageQueueIn; } }
@@ -110,22 +111,24 @@ namespace MyUDP.Rev2Beta {
         }
 
         private void __Received(IAsyncResult asyncResult) {
-            try {
-                byte[] bytesReceived = _socket.EndReceive(asyncResult, ref _endpointIn);
+            lock (thisLock) {
+                try {
+                    byte[] bytesFromServer = _socket.EndReceive(asyncResult, ref _endpointIn);
 
-                trace(_endpointIn + " <<<< RECEIVED");
+                    trace(_endpointIn + " <<<< RECEIVED");
 
-                if (bytesReceived.Length>0) {
-                    if(OnClientValidatedBytes == null || OnClientValidatedBytes(bytesReceived)) {
-                        //_messageQueueIn.AddBytes(bytesReceived);
-                        trace("Adding some bytes! " + bytesReceived.ToHex());
+                    if (bytesFromServer.Length > 0) {
+                        if (OnClientValidatedBytes == null || OnClientValidatedBytes(bytesFromServer)) {
+                            //_messageQueueIn.AddBytes(bytesReceived);
+                            trace("Adding some bytes! " + bytesFromServer.ToHex());
+                        }
                     }
+                } catch (Exception ex) {
+                    traceError("OnDataReceived error: " + _endpointIn + " : " + ex.Message);
                 }
-            } catch (Exception ex) {
-                traceError("OnDataReceived error: " + _endpointIn + " : " + ex.Message);
-            }
 
-            __Listen();
+                __Listen();
+            }
         }
 
         public void Send(PacketStream2 stream=null) {
@@ -136,14 +139,16 @@ namespace MyUDP.Rev2Beta {
 
             if(stream==null) stream = this.packetStream;
 
-            try {
-                if (OnPacketPreSend != null) OnPacketPreSend(stream);
-                
-                trace(_endpointOut + "        >>>>>>>> SENDING");
-                //_socket.BeginSend(stream.byteStream, stream.byteLength, _endpointOut, __OnSendComplete, this);
-                _socket.BeginSend(stream.byteStream, stream.byteLength, __OnSendComplete, _endpointOut); //_endpointOut
-            } catch (Exception ex) {
-                traceError("Send error: " + ex.ToString());
+            lock (thisLock) {
+                try {
+                    if (OnPacketPreSend != null) OnPacketPreSend(stream);
+
+                    trace(_endpointOut + "        >>>>>>>> SENDING");
+                    _socket.BeginSend(stream.byteStream, stream.byteLength, __OnSendComplete, _endpointOut);
+                    //_socket.Send(stream.byteStream, stream.byteLength, _endpointOut); //_endpointOut
+                } catch (Exception ex) {
+                    traceError("Send error: " + ex.ToString());
+                }
             }
         }
 

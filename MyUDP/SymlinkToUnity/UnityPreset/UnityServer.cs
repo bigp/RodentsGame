@@ -94,9 +94,7 @@ namespace MyUDP.UnityPreset {
         }
 
         private void __OnCheckClientsAlive(Gear obj) {
-            return;
-
-            Log.BufferClear();
+            //Log.BufferClear();
 
             int debugIndentCounter = 0;
             double timeNow = GetTimeSinceStart();
@@ -110,7 +108,7 @@ namespace MyUDP.UnityPreset {
                 int restInt = (int)(timeForForget - diffInt);
 
                 string cliStr = unityClient.id.ToString();
-                Log.BufferString(unityClient.id + ": " + "#".Times(diffInt) + " ".Times(restInt) + " ".Times(3 - cliStr.Length));
+                //Log.BufferString(unityClient.id + ": " + "#".Times(diffInt) + " ".Times(restInt) + " ".Times(3 - cliStr.Length));
 
                 debugIndentCounter++;
                 if((debugIndentCounter%4)==0) Log.BufferString("\n");
@@ -164,11 +162,23 @@ namespace MyUDP.UnityPreset {
         }
 
         private void ProcessIncomingMessages(UnityClient unityClient, MessageQueue2 queue) {
-            trace("Client Messages-IN: " + queue.messages.Count);
+            Log.BufferLine("Client Messages-IN: " + queue.messages.Count);
+
+            foreach (Message2 msg in queue.messages) {
+                trace("Bytes length: " + msg.bytes.Length);
+            }
+
+            queue.RecycleMessages();
         }
 
         private void ProcessOutgoingMessages(UnityClient unityClient, MessageQueue2 queue) {
-            trace("Client Messages-OUT: " + queue.messages.Count);
+            Log.BufferLine("Client Messages-OUT: " + queue.messages.Count);
+
+            foreach (Message2 msg in queue.messages) {
+                trace("Bytes length: " + msg.bytes.Length);
+            }
+
+            queue.RecycleMessages();
 
             /*
              * OK so when sending, its probably better to have each Server-side clients send through their individual sockets.
