@@ -9,22 +9,7 @@ namespace MyUDP {
 
     class Program {
         static ManualResetEvent _quitEvent = new ManualResetEvent(false);
-        static ConsoleKeyInfo ReadKey(int timeoutms, char defaultChar=' ', ConsoleKey defaultKey=ConsoleKey.Spacebar) {
-            ReadKeyInfo d = Console.ReadKey;
-            IAsyncResult result = d.BeginInvoke(null, null);
-            result.AsyncWaitHandle.WaitOne(timeoutms);
-
-            if (result.IsCompleted) {
-                ConsoleKeyInfo keyInfo = d.EndInvoke(result);
-                Console.WriteLine("Key: " + keyInfo);
-                return keyInfo;
-            } else {
-                Console.WriteLine("Timed out!");
-                return new ConsoleKeyInfo(defaultChar, defaultKey, false, false, false);
-            }
-        }
-
-        delegate ConsoleKeyInfo ReadKeyInfo();
+        static ConsoleKeyInfo keyInfo;
 
         static void Main(string[] args) {
             Console.CancelKeyPress += (sender, eArgs) => {
@@ -32,20 +17,18 @@ namespace MyUDP {
                 eArgs.Cancel = true;
 
                 if(server!=null) server.Close();
+                if(client!=null) client.Close();
             };
 
             Log.trace("MyUDP Menu: If you want to run the server, type 's'.");
             Log.trace("            Otherwise, let the timer run out.");
 
-            ConsoleKeyInfo keyInfo = ReadKey(3000);
+            keyInfo = Utils.ReadKey(3000);
 
             Log.traceClear();
 
-            if (keyInfo.KeyChar=='s') {
-                MainServer();
-            } else {
-                MainClient();
-            }
+            if (keyInfo.KeyChar=='s')   MainServer();
+            else                        MainClient();
 
             _quitEvent.WaitOne();
         }
@@ -68,17 +51,6 @@ namespace MyUDP {
             client = new UnityClient(coreClient, 1f);
             client.clockTicker.isClearOnInternalClock = false;
         }
-
-        //static UnityServer server;
-        //static UnityClient client;
-
-        //private static void MainServer() {
-        //    server = new UnityServer(5);
-        //}
-
-        //private static void MainClient() {
-        //    client = new UnityClient(5, "127.0.0.1");
-        //}
 
         ////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////

@@ -73,7 +73,26 @@ namespace MyUDP {
 		public static bool stringIsOK(string str) {
 			return !string.IsNullOrEmpty(str) && str.Trim().Length > 0;
 		}
-	}
+
+#if JUST_CONSOLE
+        delegate ConsoleKeyInfo ReadKeyInfo();
+
+        public static ConsoleKeyInfo ReadKey(int timeoutms, char defaultChar = ' ', ConsoleKey defaultKey = ConsoleKey.Spacebar) {
+            ReadKeyInfo d = Console.ReadKey;
+            IAsyncResult result = d.BeginInvoke(null, null);
+            result.AsyncWaitHandle.WaitOne(timeoutms);
+
+            if (result.IsCompleted) {
+                ConsoleKeyInfo keyInfo = d.EndInvoke(result);
+                Console.WriteLine("Key: " + keyInfo);
+                return keyInfo;
+            } else {
+                Console.WriteLine("Timed out!");
+                return new ConsoleKeyInfo(defaultChar, defaultKey, false, false, false);
+            }
+        }
+#endif
+    }
 
 	public static class Log {
 #if JUST_CONSOLE
