@@ -26,6 +26,14 @@ namespace MyUDP.UnityPreset {
         public double timeDiff = 0;
         public double timeLastReceived = 0;
         public int id = 0;
+        
+
+        private MessageQueue2 _messageQueueIn;
+        public MessageQueue2 messageQueueIn { get { return this._messageQueueIn; } }
+
+        private MessageQueue2 _messageQueueOut;
+        public MessageQueue2 messageQueueOut { get { return this._messageQueueOut; } }
+
 
         public bool isServerSide { get { return client.isServerSide; } }
         public bool HasStatus( EClientStatus whichStatus ) {
@@ -39,6 +47,12 @@ namespace MyUDP.UnityPreset {
             this.status = EClientStatus.NEW;
             this.id = ID_COUNTER++;
 
+            if(client!=null) {
+                client.OnClientReceivedBytes += OnClientReceivedBytes;
+            }
+            _messageQueueIn = new MessageQueue2();
+            _messageQueueOut = new MessageQueue2();
+
             //If the internal clock isn't required, anything below zero won't initialize it:
             if (clockRatePerSecond<0) return;
 
@@ -47,6 +61,10 @@ namespace MyUDP.UnityPreset {
 
             clockTicker.AddGear("HeartBeat").AddListener(__HeartBeat).SetParams(counterReset: 1, timeMode:EGearTimeMode.TIME_BASED);
             //clockTicker.AddInterleaving(OnSendPosition, OnSendRotation);
+        }
+
+        private void OnClientReceivedBytes(byte[] bytesFromServer) {
+            _messageQueueIn.AddBytes(bytesFromServer);
         }
 
         public void Close() {
@@ -67,15 +85,15 @@ namespace MyUDP.UnityPreset {
         }
 
         private void __ProcessMessage(Gear obj) {
-            if (client.messageQueueIn.hasMessages) ProcessMessagesIn(client.messageQueueIn);
-            if (client.messageQueueOut.hasMessages) ProcessMessagesOut(client.messageQueueOut);
+            if (this.messageQueueIn.hasMessages) ProcessMessagesIn(this.messageQueueIn);
+            if (this.messageQueueOut.hasMessages) ProcessMessagesOut(this.messageQueueOut);
         }
 
-        private void ProcessMessagesIn(MessageQueue2 queue) {
+        public void ProcessMessagesIn(MessageQueue2 queue) {
             Log.trace("Client Processing IN: " + queue.messages.Count);
         }
 
-        private void ProcessMessagesOut(MessageQueue2 queue) {
+        public void ProcessMessagesOut(MessageQueue2 queue) {
             Log.trace("Client Processing OUT: " + queue.messages.Count);
         }
     }

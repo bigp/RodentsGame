@@ -91,8 +91,8 @@ namespace MyUDP.Rev2Beta {
                     Client2 client = GetClient(asyncResult);
 
                     if(client!=null) {
-                        client.messageQueueIn.AddBytes(_receivedBytes);
-                        
+                        //client.messageQueueIn.AddBytes(_receivedBytes);
+                        client.OnClientReceivedBytes(_receivedBytes);
                         if (OnDataReceived != null) OnDataReceived(client);
                     }
 

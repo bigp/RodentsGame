@@ -149,7 +149,7 @@ namespace MyUDP.UnityPreset {
             foreach (UnityClient unityClient in clients) {
                 Client2 client = unityClient.client;
 
-                if (client.messageQueueIn.hasMessages) {
+                if (unityClient.messageQueueIn.hasMessages) {
                     //ProcessIncomingMessages(unityClient, client.messageQueueIn);
                 }
             }
@@ -157,8 +157,8 @@ namespace MyUDP.UnityPreset {
             foreach (UnityClient unityClient in clients) {
                 Client2 client = unityClient.client;
 
-                if (client.messageQueueOut.hasMessages) {
-                    //ProcessOutgoingMessages(unityClient, client.messageQueueOut);
+                if (unityClient.messageQueueOut.hasMessages) {
+                    unityClient.ProcessMessagesOut(unityClient.messageQueueOut );
                 }
 
                 /////////////// TEST SENDING BACK SOME BYTES BACK TO CLIENTS!

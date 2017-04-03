@@ -12,12 +12,6 @@ namespace MyUDP.Rev2Beta {
     public class Client2 : Core2 {
         private static object thisLock = new object();
 
-        private MessageQueue2 _messageQueueIn;
-        public MessageQueue2 messageQueueIn { get { return this._messageQueueIn; } }
-
-        private MessageQueue2 _messageQueueOut;
-        public MessageQueue2 messageQueueOut { get { return this._messageQueueOut; } }
-
         internal PacketStream2 _packetStream;
         public PacketStream2 packetStream { get { return this._packetStream; } }
 
@@ -34,7 +28,7 @@ namespace MyUDP.Rev2Beta {
         public string host { get { return this._host; } }
 
         public Action<PacketStream2> OnPacketPreSend;
-        public Func<byte[], bool> OnClientValidatedBytes;
+        public Action<byte[]> OnClientReceivedBytes;
         //public Action<PacketStream2> OnPacketPreSend;
 
         ///////////////////////////////////////////////////////////////////////////////
@@ -44,8 +38,6 @@ namespace MyUDP.Rev2Beta {
 
             _host = hostname;
             _packetStream = new PacketStream2(dataStreamSize);
-            _messageQueueIn = new MessageQueue2();
-            _messageQueueOut = new MessageQueue2();
         }
 
         public virtual void Close() {
@@ -118,9 +110,8 @@ namespace MyUDP.Rev2Beta {
                     trace(_endpointIn + " <<<< RECEIVED");
 
                     if (bytesFromServer.Length > 0) {
-                        if (OnClientValidatedBytes == null || OnClientValidatedBytes(bytesFromServer)) {
-                            _messageQueueIn.AddBytes(bytesFromServer);
-                            //trace("Adding some bytes! " + bytesFromServer[0]); //.ToHex()
+                        if (OnClientReceivedBytes != null) {
+                            OnClientReceivedBytes(bytesFromServer);
                         }
                     }
                 } catch (Exception ex) {
