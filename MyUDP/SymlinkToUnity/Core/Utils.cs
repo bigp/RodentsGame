@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace MyUDP {
 	public static class MyUDP {
@@ -10,6 +12,13 @@ namespace MyUDP {
 		//public static string[] Split(this string str, char delim) {
 		//	return str.Split(new char[] { delim }, StringSplitOptions.None);
 		//}
+
+        public static T Pop<T>(this List<T> list) {
+            int lastID = list.Count - 1;
+            T item = list[lastID];
+            list.RemoveAt(lastID);
+            return item;
+        }
 
 		public static string Join<T>(this T[] strArr, string delim) {
 			return string.Join(delim, (string[]) (object) strArr);

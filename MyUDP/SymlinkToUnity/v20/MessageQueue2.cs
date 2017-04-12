@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace MyUDP.Rev2Beta {
+namespace MyUDP.v20 {
     public class MessageQueue2 {
         private static bool _isInited = false;
-        private static int _DEFAULT_MESSAGES_MAX = 16;
+        private static int _DEFAULT_MESSAGES_MAX = 4;
 
         public static PoolOfMessages POOL_OF_MESSAGES;
 
@@ -30,7 +30,7 @@ namespace MyUDP.Rev2Beta {
         }
 
         public void AddBytes(byte[] bytes) {
-            if (_messages.Count > messagesMax) {
+            if (_messages.Count >= messagesMax) {
                 Client2.traceError("Reached Max Count of Messages; need to process some before adding more bytes to the queue!");
                 return;
             }
@@ -57,6 +57,11 @@ namespace MyUDP.Rev2Beta {
         public Message2(ulong timestamp, byte[] bytes) {
             this.timestamp = timestamp;
             this.bytes = bytes;
+        }
+
+        public Message2 Recycle() {
+            MessageQueue2.POOL_OF_MESSAGES.Push( this );
+            return this;
         }
     }
 

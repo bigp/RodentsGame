@@ -5,7 +5,7 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 
-namespace MyUDP.Rev2Beta {
+namespace MyUDP.v20 {
 
     ///////////////////////////////////////////////////////////////////////////////
 
@@ -28,7 +28,7 @@ namespace MyUDP.Rev2Beta {
         public string host { get { return this._host; } }
 
         public Action<PacketStream2> OnPacketPreSend;
-        public Action<byte[]> OnClientReceivedBytes;
+        public Action<byte[]> OnReceivedBytes;
         //public Action<PacketStream2> OnPacketPreSend;
 
         ///////////////////////////////////////////////////////////////////////////////
@@ -110,9 +110,8 @@ namespace MyUDP.Rev2Beta {
                     trace(_endpointIn + " <<<< RECEIVED");
 
                     if (bytesFromServer.Length > 0) {
-                        if (OnClientReceivedBytes != null) {
-                            OnClientReceivedBytes(bytesFromServer);
-                        }
+                        _packetStream.ResetByteIndex();
+                        if (OnReceivedBytes != null) OnReceivedBytes(bytesFromServer);
                     }
                 } catch (Exception ex) {
                     traceError("OnDataReceived error: " + _endpointIn + " : " + ex.Message);

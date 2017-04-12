@@ -3,6 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+
+namespace MyUDP.UnityPreset {
+    
+    public enum EPacketProtoID {
+        _00_HEART_BEAT,
+        _01_CONNECT_REQUEST,
+        _02_SERVER_CONFIRM,
+        _03_LOBBY_IDLE,
+        _04_DATA_RELIABLE,
+        _05_DATA_UNRELIABLE,
+        _06_DATA_MEDIA
+    }
+     
+}
 //namespace MyUDP {
 //	using Packet;
 	

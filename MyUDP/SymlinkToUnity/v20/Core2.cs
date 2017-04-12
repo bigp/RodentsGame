@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 
-namespace MyUDP.Rev2Beta {
+namespace MyUDP.v20 {
     public class Core2 {
         private static object thisLock = new object();
         internal int _port;

@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 
 namespace MyUDP.UnityPreset {
-    using Rev2Beta;
+    using v20;
     using Clock;
-    using UnityClients = Dictionary<Rev2Beta.Client2, UnityClient>;
+    using UnityClients = Dictionary<v20.Client2, UnityClient>;
     using System.Net;
 
-    class UnityServer : Server2 {
+    public class UnityServer : Server2 {
         private Object thisLock = new Object();
 
         public Clockwork clockTicker;
@@ -21,10 +21,10 @@ namespace MyUDP.UnityPreset {
         public float timeForForget = 15;
         public DateTime timeStarted;
 
-        public Action<UnityClient> OnClientSleeping;
-        public Action<UnityClient> OnClientWaking;
-        public Action<UnityClient> OnClientReturned;
-        public Action<UnityClient> OnClientDisconnected;
+        public Action<UnityClient> OnStatusSleeping;
+        public Action<UnityClient> OnStatusWaking;
+        public Action<UnityClient> OnStatusReturned;
+        public Action<UnityClient> OnStatusDisconnected;
 
         public PacketStream2 packetStreamTemp;
         
@@ -45,7 +45,7 @@ namespace MyUDP.UnityPreset {
 
             //Hook-up the events:
             this.OnNewClient += OnNewUnityClient;
-            this.OnDataReceived += OnClientReceivedData;
+            this.OnReceivedFromClient += OnClientReceivedData;
 
             //Set the "ticker" for sending messages back at given intervals:
             clockTicker = new Clockwork().StartAutoUpdate(ticksPerSecond);
@@ -67,26 +67,29 @@ namespace MyUDP.UnityPreset {
             }
             
             //Pass '-1' to the clockRate to indicate we will manually control the Message flow with a few server binding hooks:
-            clientsUnity[client] = new UnityClient(client, -1);
+            UnityClient unityClient = new UnityClient(client, -1);
+            unityClient.server = this;
+            clientsUnity[client] = unityClient;
         }
 
         private void OnClientReceivedData(Client2 client) {
             UnityClient unityClient = Resolve(client);
-            //UnityPacket unityPacket = (UnityPacket)packet;
 
             trace(client.endpointIn + ": <<<<< RECEIVED: " + _receivedBytesLength);
+
+            //If was 'SLEEPING' (partially timed-out), set it's status to WAKING:
             if (unityClient.HasStatus(EClientStatus.SLEEPING)) {
                 unityClient.status &= ~EClientStatus.SLEEPING;
                 unityClient.status |= EClientStatus.WAKING;
 
-                if (OnClientWaking != null)
-                    OnClientWaking(unityClient);
+                if (OnStatusWaking != null)
+                    OnStatusWaking(unityClient);
 
             } else if (unityClient.HasStatus(EClientStatus.WAKING)) {
                 unityClient.status &= ~EClientStatus.WAKING;
 
-                if (OnClientReturned != null)
-                    OnClientReturned(unityClient);
+                if (OnStatusReturned != null)
+                    OnStatusReturned(unityClient);
 
             }
 
@@ -118,7 +121,7 @@ namespace MyUDP.UnityPreset {
                 if (!unityClient.HasStatus(EClientStatus.SLEEPING)) {
                     if (diffSeconds > timeForSleep) {
                         unityClient.status |= EClientStatus.SLEEPING;
-                        if(OnClientSleeping!=null) OnClientSleeping(unityClient);
+                        if(OnStatusSleeping!=null) OnStatusSleeping(unityClient);
                     }
                 } else if(!unityClient.HasStatus(EClientStatus.DISCONNECTED)) {
                     if(diffSeconds > timeForForget) {
@@ -135,7 +138,7 @@ namespace MyUDP.UnityPreset {
             if(clientsToForget.Count>0) {
                 foreach (UnityClient unityClient in clientsToForget) {
                     clientsUnity.Remove(unityClient.client);
-                    if(OnClientDisconnected!=null) OnClientDisconnected(unityClient);
+                    if(OnStatusDisconnected!=null) OnStatusDisconnected(unityClient);
                     ForgetClient(unityClient.client.endpointIn);
                 }
 
@@ -149,51 +152,25 @@ namespace MyUDP.UnityPreset {
             foreach (UnityClient unityClient in clients) {
                 Client2 client = unityClient.client;
 
-                if (unityClient.messageQueueIn.hasMessages) {
-                    //ProcessIncomingMessages(unityClient, client.messageQueueIn);
-                }
+                unityClient.ProcessMessageQueue(unityClient.messageQueueIn, EClientMessageFlow.INCOMING);
             }
 
             foreach (UnityClient unityClient in clients) {
                 Client2 client = unityClient.client;
 
-                if (unityClient.messageQueueOut.hasMessages) {
-                    unityClient.ProcessMessagesOut(unityClient.messageQueueOut );
-                }
+                testServerSendPacket(client);
 
-                /////////////// TEST SENDING BACK SOME BYTES BACK TO CLIENTS!
-                packetStreamTemp.ResetByteIndex();
-                packetStreamTemp.WriteBytes(69);
-                trace(client._endpointIn + ":         >>>>>>> SENDING: " + packetStreamTemp.byteLength);
+                //unityClient.ProcessMessageQueue(unityClient.messageQueueOut, EClientMessageFlow.OUTGOING);
 
                 SendData(packetStreamTemp, client);
             }
         }
 
-        private void ProcessIncomingMessages(UnityClient unityClient, MessageQueue2 queue) {
-            Log.BufferLine("Client Messages-IN: " + queue.messages.Count);
-
-            foreach (Message2 msg in queue.messages) {
-                trace("Bytes length: " + msg.bytes.Length);
-            }
-
-            queue.RecycleMessages();
-        }
-
-        private void ProcessOutgoingMessages(UnityClient unityClient, MessageQueue2 queue) {
-            Log.BufferLine("Client Messages-OUT: " + queue.messages.Count);
-
-            foreach (Message2 msg in queue.messages) {
-                trace("Bytes length: " + msg.bytes.Length);
-            }
-
-            queue.RecycleMessages();
-
-            
-            /*
-             * OK so when sending, its probably better to have each Server-side clients send through their individual sockets.
-             * This way it avoids blocking (maybe) the threads / process when needing to simultaneously send data.
-             */
+        private void testServerSendPacket(Client2 client) {
+            /////////////// TEST SENDING BACK SOME BYTES BACK TO CLIENTS!
+            packetStreamTemp.ResetByteIndex();
+            packetStreamTemp.WriteBytes((byte)EPacketProtoID._00_HEART_BEAT << 4);
+            trace(client._endpointIn + ":         >>>>>>> SENDING: " + packetStreamTemp.byteLength);
         }
     }
 }

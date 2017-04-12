@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace MyUDP.Rev2Beta {
+namespace MyUDP.v20 {
     public class PacketStream2 {
         public static Encoding UTF8 { get { return Encoding.UTF8; } }
 
@@ -83,6 +83,11 @@ namespace MyUDP.Rev2Beta {
         //internal void CopyTo(MyUDPPacket dest) {
         //    dest.Decode(_byteStream);
         //}
+
+        public void WriteBytes(params int[] ints) {
+            byte[] bytes = Array.ConvertAll<int, byte>(ints, Convert.ToByte);
+            WriteBytes(bytes);
+        }
 
         public void WriteBytes(params byte[] bytes) {
             //_bytesList.AddRange(bytes);

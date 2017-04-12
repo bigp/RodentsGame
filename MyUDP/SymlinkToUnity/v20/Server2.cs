@@ -6,7 +6,7 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 
-namespace MyUDP.Rev2Beta {
+namespace MyUDP.v20 {
 
     using ClientList = Dictionary<EndPoint, Client2>;
 
@@ -22,16 +22,14 @@ namespace MyUDP.Rev2Beta {
         private EndPoint _reusedEndpoint;
 
         protected int _receivedBytesLength = 0;
-        protected byte[] _receivedBytes;
+        protected byte[] _bytesFromClient;
         protected Socket _socket;
         public Socket socket { get { return this._socket; } }
 
         public Action<Client2> OnNewClient;
+        public Action<Client2> OnReceivedFromClient;
         public Func<EndPoint, bool> OnValidateEndpoint;
         public Func<Client2, bool> OnValidateClient;
-        //public Action<PacketStream2> OnPacketDecoded;
-        //public Action<PacketStream2> OnPacketEncoded;
-        public Action<Client2> OnDataReceived;
 
         public Server2(int port = -1,
                         int dataStreamSize = -1,
@@ -42,7 +40,7 @@ namespace MyUDP.Rev2Beta {
             
             _reusedEndpoint = (EndPoint)new IPEndPoint(IPAddress.Any, MyDefaults.CLIENT_PORT);
             _clientList = new ClientList();
-            _receivedBytes = new byte[dataStreamSize];
+            _bytesFromClient = new byte[dataStreamSize];
 
             try {
                 _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -71,10 +69,8 @@ namespace MyUDP.Rev2Beta {
             EndPoint ep = (EndPoint)_endpointIn;
 
             // Start listening for incoming data
-            byte[] bytes = _receivedBytes;
-
             _socket.BeginReceiveFrom(
-                bytes, 0, bytes.Length,
+                _bytesFromClient, 0, _bytesFromClient.Length,
                 SocketFlags.None,
                 ref ep,
                 __Received,
@@ -91,9 +87,8 @@ namespace MyUDP.Rev2Beta {
                     Client2 client = GetClient(asyncResult);
 
                     if(client!=null) {
-                        //client.messageQueueIn.AddBytes(_receivedBytes);
-                        client.OnClientReceivedBytes(_receivedBytes);
-                        if (OnDataReceived != null) OnDataReceived(client);
+                        if (client.OnReceivedBytes != null) client.OnReceivedBytes(_bytesFromClient);
+                        if (OnReceivedFromClient != null) OnReceivedFromClient(client);
                     }
 
                     __Listen();
